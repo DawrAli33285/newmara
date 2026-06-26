@@ -26,6 +26,7 @@ model Publication {
   createdAt          DateTime             @default(now())
   issues             Issue[]
   subscriptions      Subscription[]
+  stripePriceId      String?
   advertiserPayments AdvertiserPayment[]
 }
 
@@ -52,6 +53,7 @@ model Subscription {
   status               String      @default("active")
   currentPeriodEnd     DateTime?
   createdAt            DateTime    @default(now())
+  @@unique([userId, publicationId])
 }
 
 model AdvertiserPayment {
@@ -63,6 +65,7 @@ model AdvertiserPayment {
   amountCents          Int
   stripePaymentLinkId  String?
   stripePaymentIntentId String?
+  paymentUrl           String?
   status               String      @default("pending")
   createdAt            DateTime    @default(now())
 }

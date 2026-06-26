@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 const styleMap = {
   'the-skipper':  { color: 'from-blue-900 to-blue-700',       emoji: '⚓',  issues: '12 issues/year' },
@@ -18,9 +20,24 @@ const fallbackColors = [
 ]
 
 export default async function PublicationsGrid() {
+  const session = await getServerSession(authOptions)
+
   const publications = await prisma.publication.findMany({
     orderBy: { title: 'asc' },
   })
+
+  // Get subscribed publication IDs for this user
+  let subscribedIds = new Set()
+  if (session?.user?.email) {
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+    if (user) {
+      const subs = await prisma.subscription.findMany({
+        where: { userId: user.id, status: 'active' },
+        select: { publicationId: true },
+      })
+      subscribedIds = new Set(subs.map(s => s.publicationId))
+    }
+  }
 
   return (
     <section id="publications" className="py-24 bg-gray-50">
@@ -44,6 +61,8 @@ export default async function PublicationsGrid() {
                 emoji: '📖',
                 issues: 'Regular',
               }
+              const isSubscribed = subscribedIds.has(pub.id)
+
               return (
                 <div
                   key={pub.slug}
@@ -71,12 +90,22 @@ export default async function PublicationsGrid() {
                     {pub.description && (
                       <p className="text-sm text-gray-500 mt-2 leading-relaxed">{pub.description}</p>
                     )}
-                    <Link
-                      href={`/subscribe/${pub.slug}`}
-                      className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-                    >
-                      Subscribe →
-                    </Link>
+
+                    {isSubscribed ? (
+                      <Link
+                        href={`/read/${pub.slug}`}
+                        className="mt-4 inline-block text-sm font-semibold text-green-600 hover:text-green-800 transition-colors"
+                      >
+                        ✓ Read Now →
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/subscribe/${pub.slug}`}
+                        className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        Subscribe →
+                      </Link>
+                    )}
                   </div>
                 </div>
               )

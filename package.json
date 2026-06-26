@@ -12,6 +12,7 @@
     "@prisma/client": "^5.22.0",
     "@supabase/supabase-js": "^2.108.2",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
     "next": "16.2.9",
     "next-auth": "^4.24.14",
     "nodemailer": "^7.0.13",
@@ -20,7 +21,8 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-pageflip": "^2.0.3",
-    "resend": "^6.14.0"
+    "resend": "^6.14.0",
+    "stripe": "^22.3.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

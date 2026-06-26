@@ -58,9 +58,12 @@ export default async function ReadPage({ params, searchParams }) {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div>
-          <h1 className="font-bold text-gray-900">{publication.title}</h1>
-          <p className="text-sm text-gray-500">{selectedIssue.title}</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="font-bold text-gray-900">{publication.title}</h1>
+            <p className="text-sm text-gray-500">{selectedIssue.title}</p>
+            <a href="/" className="text-sm text-gray-400 hover:text-gray-700 transition">Home</a>
+          </div>
         </div>
         <BackButton />
       </div>

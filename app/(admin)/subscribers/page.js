@@ -5,8 +5,9 @@ import { prisma } from '@/lib/prisma'
 export default async function SubscribersPage({ searchParams }) {
   await getServerSession(authOptions)
 
-  const statusFilter = searchParams?.status || 'all'
-  const search = searchParams?.search || ''
+  const awaitedParams = await searchParams
+  const statusFilter = awaitedParams?.status || 'all'
+  const search = awaitedParams?.search || ''
 
   const where = {
     ...(statusFilter !== 'all' && { status: statusFilter }),
@@ -37,7 +38,6 @@ export default async function SubscribersPage({ searchParams }) {
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Subscribers</h1>
       <p className="text-gray-500 text-sm mb-8">Manage all reader subscriptions</p>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
         <div className="rounded-xl p-6 bg-green-50 text-green-700">
           <p className="text-3xl font-bold">{totalActive}</p>
@@ -53,7 +53,6 @@ export default async function SubscribersPage({ searchParams }) {
         </div>
       </div>
 
-      {/* Filters */}
       <form method="GET" className="flex flex-wrap gap-3 mb-6">
         <input
           name="search"
@@ -79,7 +78,6 @@ export default async function SubscribersPage({ searchParams }) {
         </button>
       </form>
 
-      {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {subscribers.length === 0 ? (
           <p className="text-gray-400 text-sm p-6">No subscribers found.</p>

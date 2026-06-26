@@ -9,15 +9,16 @@ export default function SubscribeButton({ publicationId, slug }) {
 
   async function handleSubscribe() {
     setLoading(true)
-    const res = await fetch('/api/subscribe', {
+    const res = await fetch('/api/stripe/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ publicationId }),
+      body: JSON.stringify({ publicationSlug: slug }),
     })
-    if (res.ok) {
-      router.push(`/read/${slug}`)
+    const data = await res.json()
+    if (data.url) {
+      window.location.href = data.url
     } else {
-      alert('Something went wrong. Please try again.')
+      alert(data.error || 'Something went wrong. Please try again.')
       setLoading(false)
     }
   }
@@ -26,9 +27,9 @@ export default function SubscribeButton({ publicationId, slug }) {
     <button
       onClick={handleSubscribe}
       disabled={loading}
-      className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      {loading ? 'Processing...' : 'Subscribe Now (Test)'}
+      {loading ? 'Redirecting to payment...' : 'Subscribe Now'}
     </button>
   )
 }
