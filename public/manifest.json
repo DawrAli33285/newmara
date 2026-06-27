@@ -1,0 +1,11 @@
+{
+    "name": "Mara Media",
+    "short_name": "Mara Media",
+    "description": "Read your favourite Irish magazines",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0f1923",
+    "theme_color": "#1C3664",
+    "orientation": "portrait",
+    "icons": []
+  }
