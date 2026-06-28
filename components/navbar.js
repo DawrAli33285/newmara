@@ -56,7 +56,7 @@ export default function Navbar() {
             <>
               <Link href="/login" className={linkClass}>Login</Link>
               <Link
-                href="/subscribe"
+                href="/#publications"
                 className="text-sm font-semibold px-5 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm"
               >
                 Subscribe
