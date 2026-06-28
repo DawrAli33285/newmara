@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
 const styleMap = {
-  'the-skipper':  { color: 'from-blue-900 to-blue-700',       emoji: '⚓',  issues: '12 issues/year' },
+  'the-skipper':  { color: 'from-blue-900 to-blue-700',       emoji: '⚓',  issues: '12 issues/monthly' },
   'take-off':     { color: 'from-sky-800 to-sky-600',         emoji: '✈️',  issues: 'Annual' },
   'go-west':      { color: 'from-emerald-800 to-emerald-600', emoji: '🌿', issues: 'Annual' },
   'the-business': { color: 'from-slate-800 to-slate-600',     emoji: '📈', issues: 'Annual' },
