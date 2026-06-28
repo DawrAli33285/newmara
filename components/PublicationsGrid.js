@@ -23,10 +23,10 @@ export default async function PublicationsGrid() {
   const session = await getServerSession(authOptions)
 
   const publications = await prisma.publication.findMany({
+    where: { isPublished: true },
     orderBy: { title: 'asc' },
   })
 
-  // Get subscribed publication IDs for this user
   let subscribedIds = new Set()
   if (session?.user?.email) {
     const user = await prisma.user.findUnique({ where: { email: session.user.email } })

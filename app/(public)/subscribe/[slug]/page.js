@@ -1,56 +1,103 @@
-import { prisma } from '@/lib/prisma'
-import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import SubscribeButton from './SubscribeButton'
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import SubscribeButton from "./SubscribeButton";
 
 const styleMap = {
-  'the-skipper':  { color: 'from-blue-900 to-blue-700',       emoji: '⚓',  price: '€49/year' },
-  'take-off':     { color: 'from-sky-800 to-sky-600',         emoji: '✈️',  price: '€29/year' },
-  'go-west':      { color: 'from-emerald-800 to-emerald-600', emoji: '🌿', price: '€29/year' },
-  'the-business': { color: 'from-slate-800 to-slate-600',     emoji: '📈', price: '€29/year' },
-  'due-south':    { color: 'from-amber-800 to-amber-600',     emoji: '🧭', price: '€29/year' },
-}
+  "the-skipper": {
+    color: "from-blue-900 to-blue-700",
+    emoji: "⚓",
+    price: "€49/year",
+  },
+  "take-off": {
+    color: "from-sky-800 to-sky-600",
+    emoji: "✈️",
+    price: "€29/year",
+  },
+  "go-west": {
+    color: "from-emerald-800 to-emerald-600",
+    emoji: "🌿",
+    price: "€29/year",
+  },
+  "the-business": {
+    color: "from-slate-800 to-slate-600",
+    emoji: "📈",
+    price: "€29/year",
+  },
+  "due-south": {
+    color: "from-amber-800 to-amber-600",
+    emoji: "🧭",
+    price: "€29/year",
+  },
+};
 
 export default async function SubscribePage({ params }) {
-  const { slug } = await params
-  const session = await getServerSession(authOptions)
+  const { slug } = await params;
+  const session = await getServerSession(authOptions);
 
-  const publication = await prisma.publication.findUnique({ where: { slug } })
-  if (!publication) redirect('/')
+  const publication = await prisma.publication.findUnique({ where: { slug } });
+  if (!publication) redirect("/");
 
-  let alreadySubscribed = false
+  let alreadySubscribed = false;
   if (session) {
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
     if (user) {
       const existing = await prisma.subscription.findFirst({
-        where: { userId: user.id, publicationId: publication.id, status: 'active' },
-      })
-      alreadySubscribed = !!existing
+        where: {
+          userId: user.id,
+          publicationId: publication.id,
+          status: "active",
+        },
+      });
+      alreadySubscribed = !!existing;
     }
   }
 
-  const style = styleMap[slug] || { color: 'from-blue-900 to-blue-700', emoji: '📖', price: '€29/year' }
+  const style = styleMap[slug] || {
+    color: "from-blue-900 to-blue-700",
+    emoji: "📖",
+    price: "€29/year",
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-16">
       <div className="max-w-md w-full">
-
         <div className="rounded-2xl overflow-hidden shadow-lg bg-white">
-          <div className={`bg-gradient-to-br ${style.color} h-48 flex items-center justify-center`}>
-            <span className="text-7xl">{style.emoji}</span>
-          </div>
+          {publication.coverImageUrl ? (
+            <img
+              src={publication.coverImageUrl}
+              alt={publication.title}
+              className="w-full h-48 object-cover"
+            />
+          ) : (
+            <div
+              className={`bg-gradient-to-br ${style.color} h-48 flex items-center justify-center`}
+            >
+              <span className="text-7xl">{style.emoji}</span>
+            </div>
+          )}
 
           <div className="p-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">{publication.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              {publication.title}
+            </h1>
             {publication.description && (
-              <p className="text-gray-500 text-sm mb-6">{publication.description}</p>
+              <p className="text-gray-500 text-sm mb-6">
+                {publication.description}
+              </p>
             )}
 
             <div className="bg-blue-50 rounded-xl p-4 mb-6">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700">Annual subscription</span>
-                <span className="text-xl font-bold text-blue-700">{style.price}</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Annual subscription
+                </span>
+                <span className="text-xl font-bold text-blue-700">
+                  {style.price}
+                </span>
               </div>
               <ul className="text-xs text-gray-500 space-y-1">
                 <li>✓ Access to all published issues</li>
@@ -94,8 +141,7 @@ export default async function SubscribePage({ params }) {
             )}
           </div>
         </div>
-
       </div>
     </div>
-  )
+  );
 }

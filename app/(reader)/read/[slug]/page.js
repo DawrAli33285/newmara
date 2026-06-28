@@ -3,9 +3,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import dynamic from 'next/dynamic'
-
 import FlipbookWrapper from '@/components/FlipbookWrapper'
 import BackButton from '@/components/BackButton'
+
 export default async function ReadPage({ params, searchParams }) {
   const { slug } = await params
   const session = await getServerSession(authOptions)
@@ -28,7 +28,13 @@ export default async function ReadPage({ params, searchParams }) {
     where: { email: session.user.email },
   })
 
+  const awaitedSearch = await searchParams
+
   if (user?.role !== 'admin') {
+    if (awaitedSearch?.subscribed === '1') {
+      await new Promise((r) => setTimeout(r, 2000))
+    }
+
     const subscription = await prisma.subscription.findFirst({
       where: {
         userId: user?.id,
@@ -51,7 +57,6 @@ export default async function ReadPage({ params, searchParams }) {
     )
   }
 
-  const awaitedSearch = await searchParams
   const selectedIssueId = awaitedSearch?.issue || publication.issues[0].id
   const selectedIssue = publication.issues.find(i => i.id === selectedIssueId) || publication.issues[0]
 
