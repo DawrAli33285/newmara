@@ -29,8 +29,8 @@ export async function POST(req) {
       },
       quantity: 1,
     }],
-    success_url: `${baseUrl}/admin/advertisers?paid=1`,
-    cancel_url: `${baseUrl}/admin/advertisers`,
+    success_url: `${baseUrl}/payment-success`,
+    cancel_url: `${baseUrl}/payment-cancelled`,
     metadata: { advertiserName, advertiserEmail, publicationId },
   })
 

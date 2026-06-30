@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server'
+import nodemailer from 'nodemailer'
 import { stripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+})
 
 export async function POST(req) {
   const body = await req.text()
@@ -46,6 +55,11 @@ export async function POST(req) {
     }
 
     if (session.mode === 'payment') {
+      const payment = await prisma.advertiserPayment.findFirst({
+        where: { stripePaymentLinkId: session.id },
+        include: { publication: { select: { title: true } } },
+      })
+
       await prisma.advertiserPayment.updateMany({
         where: { stripePaymentLinkId: session.id },
         data: {
@@ -53,6 +67,27 @@ export async function POST(req) {
           stripePaymentIntentId: session.payment_intent,
         },
       })
+
+      if (payment?.advertiserEmail) {
+        try {
+          const info = await transporter.sendMail({
+            from: `"Mara Media" <${process.env.EMAIL_USER}>`,
+            to: payment.advertiserEmail,
+            subject: 'Payment Confirmation — Mara Media',
+            html: `
+              <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
+                <h2 style="color: #1a3460;">Payment Received</h2>
+                <p>Hi ${payment.advertiserName},</p>
+                <p>We've received your payment of <strong>€${(payment.amountCents / 100).toFixed(2)}</strong> for <strong>${payment.publication.title}</strong>.</p>
+                <p style="color:#666;font-size:14px;">Thank you for advertising with Mara Media.</p>
+              </div>
+            `,
+          })
+          console.log('[stripe/webhook] confirmation email sent:', info.messageId)
+        } catch (mailErr) {
+          console.error('[stripe/webhook] FAILED to send confirmation email:', mailErr)
+        }
+      }
     }
   }
 

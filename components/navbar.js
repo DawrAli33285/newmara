@@ -7,6 +7,7 @@ import { useSession, signOut } from 'next-auth/react'
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { data: session } = useSession()
+  const isAdmin = session?.user?.role === 'admin'
 
   const linkClass = `text-sm font-medium transition-colors hover:opacity-70 text-white`
 
@@ -29,7 +30,9 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           {session ? (
             <>
-              <Link href="/account" className={linkClass}>My Account</Link>
+              <Link href={isAdmin ? '/dashboard' : '/account'} className={linkClass}>
+                {isAdmin ? 'Dashboard' : 'My Account'}
+              </Link>
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
                 className="text-sm font-semibold px-5 py-2 rounded-full bg-blue-500 text-white hover:bg-blue-400 transition-colors shadow-sm"
@@ -69,7 +72,9 @@ export default function Navbar() {
             <Link href="/#pricing" className="text-sm font-medium text-white" onClick={() => setMenuOpen(false)}>Pricing</Link>
             {session ? (
               <>
-                <Link href="/account" className="text-sm font-medium text-white" onClick={() => setMenuOpen(false)}>My Account</Link>
+                <Link href={isAdmin ? '/dashboard' : '/account'} className="text-sm font-medium text-white" onClick={() => setMenuOpen(false)}>
+                  {isAdmin ? 'Dashboard' : 'My Account'}
+                </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
                   className="text-sm font-semibold px-5 py-2 rounded-full bg-blue-500 text-white text-center"

@@ -11,6 +11,7 @@ export default function FlipbookViewer({ pdfUrl, title }) {
   const [currentPage, setCurrentPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [zoom, setZoom] = useState(1)
   const flipBook = useRef(null)
   const containerRef = useRef(null)
 
@@ -69,6 +70,36 @@ export default function FlipbookViewer({ pdfUrl, title }) {
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [])
 
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === 'ArrowLeft') {
+        flipBook.current?.pageFlip().flipPrev()
+      } else if (e.key === 'ArrowRight') {
+        flipBook.current?.pageFlip().flipNext()
+      } else if (e.key === '+' || e.key === '=') {
+        setZoom(z => Math.min(z + 0.25, 3))
+      } else if (e.key === '-' || e.key === '_') {
+        setZoom(z => Math.max(z - 0.25, 1))
+      } else if (e.key === 'Escape' && isFullscreen) {
+        document.exitFullscreen()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isFullscreen])
+
+  function zoomIn() {
+    setZoom(z => Math.min(z + 0.25, 3))
+  }
+
+  function zoomOut() {
+    setZoom(z => Math.max(z - 0.25, 1))
+  }
+
+  function resetZoom() {
+    setZoom(1)
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
@@ -115,6 +146,35 @@ export default function FlipbookViewer({ pdfUrl, title }) {
         </button>
         <div className="w-px h-5 bg-gray-200 mx-1" />
         <button
+          onClick={zoomOut}
+          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm"
+          title="Zoom out"
+          disabled={zoom <= 1}
+        >
+          −
+        </button>
+        <span className="text-xs text-gray-500 min-w-[36px] text-center">
+          {Math.round(zoom * 100)}%
+        </span>
+        <button
+          onClick={zoomIn}
+          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm"
+          title="Zoom in"
+          disabled={zoom >= 3}
+        >
+          +
+        </button>
+        {zoom !== 1 && (
+          <button
+            onClick={resetZoom}
+            className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-xs"
+            title="Reset zoom"
+          >
+            ⟲
+          </button>
+        )}
+        <div className="w-px h-5 bg-gray-200 mx-1" />
+        <button
           onClick={toggleFullscreen}
           className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm"
           title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
@@ -137,25 +197,41 @@ export default function FlipbookViewer({ pdfUrl, title }) {
         </div>
       )}
 
-      <HTMLFlipBook
-        ref={flipBook}
-        width={420}
-        height={594}
-        size="fixed"
-        showCover={true}
-        mobileScrollSupport={true}
-        onFlip={(e) => setCurrentPage(e.data)}
-        className="shadow-2xl"
+      <div
+        style={{
+          overflow: zoom > 1 ? 'auto' : 'visible',
+          maxWidth: '100%',
+          maxHeight: isFullscreen ? '80vh' : '80vh',
+        }}
       >
-        {pages.map((src, i) => (
-          <div key={i} style={{ background: '#fff' }}>
-            <img src={src} alt={`Page ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          </div>
-        ))}
-      </HTMLFlipBook>
+        <div
+          style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: 'center top',
+            transition: 'transform 0.2s ease',
+          }}
+        >
+          <HTMLFlipBook
+            ref={flipBook}
+            width={420}
+            height={594}
+            size="fixed"
+            showCover={true}
+            mobileScrollSupport={true}
+            onFlip={(e) => setCurrentPage(e.data)}
+            className="shadow-2xl"
+          >
+            {pages.map((src, i) => (
+              <div key={i} style={{ background: '#fff' }}>
+                <img src={src} alt={`Page ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </div>
+            ))}
+          </HTMLFlipBook>
+        </div>
+      </div>
 
       <p className="text-xs text-gray-400">
-        Click pages or use arrows to navigate · Swipe on mobile
+        Click pages or use arrows to navigate · Swipe on mobile · Use +/− to zoom
       </p>
     </div>
   )

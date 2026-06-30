@@ -19,11 +19,11 @@ export default function Footer() {
               Publications
             </h4>
             <ul className="space-y-2 text-sm text-blue-200">
-              <li><Link href="/subscribe" className="hover:text-white transition-colors">The Skipper</Link></li>
-              <li><Link href="/subscribe" className="hover:text-white transition-colors">Take Off</Link></li>
-              <li><Link href="/subscribe" className="hover:text-white transition-colors">Go West</Link></li>
-              <li><Link href="/subscribe" className="hover:text-white transition-colors">The Business</Link></li>
-              <li><Link href="/subscribe" className="hover:text-white transition-colors">Due South</Link></li>
+              <li><Link href="/subscribe/the-skipper" className="hover:text-white transition-colors">The Skipper</Link></li>
+              <li><Link href="/subscribe/take-off" className="hover:text-white transition-colors">Take Off</Link></li>
+              {/* <li><Link href="/subscribe/go-west" className="hover:text-white transition-colors">Go West</Link></li> */}
+              <li><Link href="/subscribe/the-business" className="hover:text-white transition-colors">The Business</Link></li>
+              <li><Link href="/subscribe/due-south" className="hover:text-white transition-colors">Due South</Link></li>
             </ul>
           </div>
 
@@ -34,7 +34,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-blue-200">
               <li><Link href="/login" className="hover:text-white transition-colors">Login</Link></li>
               <li><Link href="/register" className="hover:text-white transition-colors">Register</Link></li>
-              <li><Link href="/subscribe" className="hover:text-white transition-colors">Subscribe</Link></li>
+              <li><Link href="/#publications" className="hover:text-white transition-colors">Subscribe</Link></li>
               <li><Link href="/account" className="hover:text-white transition-colors">My Account</Link></li>
             </ul>
           </div>
