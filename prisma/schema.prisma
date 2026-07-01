@@ -12,8 +12,10 @@ model User {
   email         String         @unique
   passwordHash  String
   role          String         @default("reader")
+  deviceToken   String?        
   createdAt     DateTime       @default(now())
   subscriptions Subscription[]
+  issueViews IssueView[]
 }
 
 model Publication {
@@ -40,6 +42,7 @@ model Issue {
   coverImageUrl String?    
   isPublished   Boolean     @default(false)  
   publishedAt   DateTime    @default(now())
+  views IssueView[]
 }
 
 model Subscription {
@@ -76,4 +79,14 @@ model PasswordResetToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model IssueView {
+  id        String   @id @default(cuid())
+  userId    String
+  issueId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  issue Issue @relation(fields: [issueId], references: [id])
 }

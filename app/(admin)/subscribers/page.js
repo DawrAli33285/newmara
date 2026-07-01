@@ -16,7 +16,7 @@ export default async function SubscribersPage({ searchParams }) {
     }),
   }
 
-  const [subscribers, totalActive, totalExpired, totalCancelled] = await Promise.all([
+  const [subscribers, totalActive, totalExpired, totalCancelled, topIssues, topPublications, recentViews] = await Promise.all([
     prisma.subscription.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -25,7 +25,45 @@ export default async function SubscribersPage({ searchParams }) {
     prisma.subscription.count({ where: { status: 'active' } }),
     prisma.subscription.count({ where: { status: 'expired' } }),
     prisma.subscription.count({ where: { status: 'cancelled' } }),
+    prisma.issueView.groupBy({
+      by: ['issueId'],
+      _count: { issueId: true },
+      orderBy: { _count: { issueId: 'desc' } },
+      take: 5,
+    }),
+    prisma.subscription.groupBy({
+      by: ['publicationId'],
+      where: { status: 'active' },
+      _count: { publicationId: true },
+      orderBy: { _count: { publicationId: 'desc' } },
+      take: 5,
+    }),
+    prisma.issueView.count({
+      where: {
+        createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      },
+    }),
   ])
+
+  const topIssuesHydrated = await Promise.all(
+    topIssues.map(async (v) => {
+      const issue = await prisma.issue.findUnique({
+        where: { id: v.issueId },
+        include: { publication: { select: { title: true } } },
+      })
+      return { ...v, issue }
+    })
+  )
+
+  const topPublicationsHydrated = await Promise.all(
+    topPublications.map(async (p) => {
+      const publication = await prisma.publication.findUnique({
+        where: { id: p.publicationId },
+        select: { title: true },
+      })
+      return { ...p, publication }
+    })
+  )
 
   const statusColor = (status) => {
     if (status === 'active') return 'bg-green-100 text-green-700'
@@ -118,6 +156,80 @@ export default async function SubscribersPage({ searchParams }) {
       </div>
 
       <p className="text-xs text-gray-400 mt-4">{subscribers.length} result{subscribers.length !== 1 ? 's' : ''}</p>
+
+      <div className="mt-12">
+        <h2 className="text-xl font-bold text-gray-900 mb-6">Reading Analytics</h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+          <div className="rounded-xl p-6 bg-blue-50 text-blue-700">
+            <p className="text-3xl font-bold">{recentViews}</p>
+            <p className="text-sm font-medium mt-1 opacity-75">Issue Opens (Last 30 Days)</p>
+          </div>
+          <div className="rounded-xl p-6 bg-purple-50 text-purple-700">
+            <p className="text-3xl font-bold">{topIssuesHydrated.length > 0 ? topIssuesHydrated[0]._count.issueId : 0}</p>
+            <p className="text-sm font-medium mt-1 opacity-75">Most Read Issue Opens</p>
+          </div>
+          <div className="rounded-xl p-6 bg-indigo-50 text-indigo-700">
+            <p className="text-3xl font-bold">{totalActive}</p>
+            <p className="text-sm font-medium mt-1 opacity-75">Active Readers</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">Most Read Issues</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Ranked by total opens</p>
+            </div>
+            {topIssuesHydrated.length === 0 ? (
+              <p className="text-gray-400 text-sm p-6">No reading data yet.</p>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {topIssuesHydrated.map((v, idx) => (
+                  <div key={v.issueId} className="px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-gray-400 w-4">#{idx + 1}</span>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{v.issue?.title || 'Unknown'}</p>
+                        <p className="text-xs text-gray-400">{v.issue?.publication?.title || '—'}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-blue-600">{v._count.issueId}</p>
+                      <p className="text-xs text-gray-400">opens</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">Most Subscribed Publications</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Active subscribers per publication</p>
+            </div>
+            {topPublicationsHydrated.length === 0 ? (
+              <p className="text-gray-400 text-sm p-6">No subscription data yet.</p>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {topPublicationsHydrated.map((p, idx) => (
+                  <div key={p.publicationId} className="px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-gray-400 w-4">#{idx + 1}</span>
+                      <p className="text-sm font-medium text-gray-900">{p.publication?.title || 'Unknown'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-purple-600">{p._count.publicationId}</p>
+                      <p className="text-xs text-gray-400">subscribers</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

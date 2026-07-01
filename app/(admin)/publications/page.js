@@ -13,10 +13,10 @@ export default async function PublicationsPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Publications</h1>
         <Link
-          href="/publications/upload"
+          href="/publications/create"
           className="bg-[#1C3664] text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-900"
         >
-          + Upload New Issue
+          + Create Publication
         </Link>
       </div>
 

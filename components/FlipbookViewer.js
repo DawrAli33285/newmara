@@ -3,13 +3,12 @@
 import { useState, useRef, useEffect } from 'react'
 import HTMLFlipBook from 'react-pageflip'
 
-export default function FlipbookViewer({ pdfUrl, title }) {
+export default function FlipbookViewer({ pdfUrl, title, issueId }) {
   const [pages, setPages] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 })
   const [error, setError] = useState(null)
   const [currentPage, setCurrentPage] = useState(0)
-  const [totalPages, setTotalPages] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [zoom, setZoom] = useState(1)
   const flipBook = useRef(null)
@@ -28,8 +27,9 @@ export default function FlipbookViewer({ pdfUrl, title }) {
 
         const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise
         const numPages = pdf.numPages
-        setTotalPages(numPages)
         setLoadingProgress({ current: 0, total: numPages })
+
+        const collectedPages = []
 
         for (let i = 1; i <= numPages; i++) {
           const page = await pdf.getPage(i)
@@ -40,11 +40,23 @@ export default function FlipbookViewer({ pdfUrl, title }) {
           await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise
           const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
 
-          setPages(prev => [...prev, dataUrl])
+          collectedPages.push(dataUrl)
           setLoadingProgress({ current: i, total: numPages })
 
-          if (i === 1) setLoading(false) 
+          if (i === 1) {
+            setLoading(false)
+            if (issueId) {
+              fetch('/api/views', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ issueId }),
+              }).catch(() => {})
+            }
+          }
         }
+
+        setPages(collectedPages)
+
       } catch (err) {
         console.error('PDF load error:', err)
         setError('Failed to load publication. Please try again.')
@@ -88,19 +100,13 @@ export default function FlipbookViewer({ pdfUrl, title }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isFullscreen])
 
-  function zoomIn() {
-    setZoom(z => Math.min(z + 0.25, 3))
-  }
+  function zoomIn() { setZoom(z => Math.min(z + 0.25, 3)) }
+  function zoomOut() { setZoom(z => Math.max(z - 0.25, 1)) }
+  function resetZoom() { setZoom(1) }
 
-  function zoomOut() {
-    setZoom(z => Math.max(z - 0.25, 1))
-  }
+  const totalPages = pages.length
 
-  function resetZoom() {
-    setZoom(1)
-  }
-
-  if (loading) {
+  if (loading && pages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -134,7 +140,7 @@ export default function FlipbookViewer({ pdfUrl, title }) {
         >
           ‹
         </button>
-        <span className="text-sm text-gray-600 min-w-[80px] text-center font-medium">
+        <span className="text-sm text-gray-600 min-w-[100px] text-center font-medium">
           {currentPage + 1} / {totalPages}
         </span>
         <button
@@ -201,7 +207,7 @@ export default function FlipbookViewer({ pdfUrl, title }) {
         style={{
           overflow: zoom > 1 ? 'auto' : 'visible',
           maxWidth: '100%',
-          maxHeight: isFullscreen ? '80vh' : '80vh',
+          maxHeight: isFullscreen ? '85vh' : '80vh',
         }}
       >
         <div
@@ -217,13 +223,20 @@ export default function FlipbookViewer({ pdfUrl, title }) {
             height={594}
             size="fixed"
             showCover={true}
+            drawShadow={true}
+            flippingTime={600}
+            startPage={0}
             mobileScrollSupport={true}
             onFlip={(e) => setCurrentPage(e.data)}
             className="shadow-2xl"
           >
             {pages.map((src, i) => (
-              <div key={i} style={{ background: '#fff' }}>
-                <img src={src} alt={`Page ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <div key={i} style={{ background: '#fff', width: '100%', height: '100%' }}>
+                <img
+                  src={src}
+                  alt={`Page ${i + 1}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
               </div>
             ))}
           </HTMLFlipBook>

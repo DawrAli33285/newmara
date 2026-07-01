@@ -92,7 +92,7 @@ export default async function ReadPage({ params, searchParams }) {
       )}
 
       <div className="py-10 px-4">
-        <FlipbookWrapper pdfUrl={selectedIssue.pdfUrl} title={selectedIssue.title} />
+      <FlipbookWrapper pdfUrl={selectedIssue.pdfUrl} title={selectedIssue.title} issueId={selectedIssue.id} />
       </div>
     </div>
   )
