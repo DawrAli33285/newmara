@@ -15,3 +15,20 @@ export async function PATCH(req, { params }) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
+
+export async function DELETE(req, { params }) {
+  try {
+    const { id } = await params
+
+    await prisma.$transaction([
+      prisma.subscription.deleteMany({ where: { publicationId: id } }),
+      prisma.issue.deleteMany({ where: { publicationId: id } }),
+      prisma.publication.delete({ where: { id } }),
+    ])
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error(err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}

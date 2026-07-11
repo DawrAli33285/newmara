@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import PublishToggle from './PublishToggle'
+import DeletePublicationButton from './DeletePublicationButton'
 
 export default async function PublicationsPage() {
   const publications = await prisma.publication.findMany({
@@ -42,6 +43,7 @@ export default async function PublicationsPage() {
                 View Issues
               </Link>
               <PublishToggle id={pub.id} isPublished={pub.isPublished} />
+              <DeletePublicationButton id={pub.id} title={pub.title} />
             </div>
           </div>
         ))}

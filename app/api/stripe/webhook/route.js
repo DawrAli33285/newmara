@@ -19,7 +19,7 @@ export async function POST(req) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
   } catch (err) {
-    return NextResponse.json({ error: `Webhook error: ${err.message}` }, { status: 400 })
+    return NextResponse.json({ error: Webhook error: ${err.message} }, { status: 400 })
   }
 
   if (event.type === 'checkout.session.completed') {
@@ -71,7 +71,7 @@ export async function POST(req) {
       if (payment?.advertiserEmail) {
         try {
           const info = await transporter.sendMail({
-            from: `"Mara Media" <${process.env.EMAIL_USER}>`,
+            from: "Mara Media" <${process.env.EMAIL_USER}>,
             to: payment.advertiserEmail,
             subject: 'Payment Confirmation — Mara Media',
             html: `
@@ -110,6 +110,40 @@ export async function POST(req) {
       where: { stripeSubscriptionId: sub.id },
       data: { status: 'cancelled' },
     })
+  }
+
+
+  if (event.type === 'charge.refunded') {
+    const charge = event.data.object
+
+    if (charge.payment_intent) {
+      await prisma.advertiserPayment.updateMany({
+        where: { stripePaymentIntentId: charge.payment_intent },
+        data: { status: 'refunded' },
+      })
+    }
+
+    if (charge.invoice) {
+      try {
+        const invoice = await stripe.invoices.retrieve(charge.invoice)
+        const subscriptionId = invoice.subscription
+
+        if (subscriptionId) {
+          try {
+            await stripe.subscriptions.cancel(subscriptionId)
+          } catch (cancelErr) {
+            console.error('[stripe/webhook] subscription cancel error:', cancelErr.message)
+          }
+
+          await prisma.subscription.updateMany({
+            where: { stripeSubscriptionId: subscriptionId },
+            data: { status: 'cancelled' },
+          })
+        }
+      } catch (err) {
+        console.error('[stripe/webhook] FAILED to process refund for invoice:', err)
+      }
+    }
   }
 
   return NextResponse.json({ received: true })
