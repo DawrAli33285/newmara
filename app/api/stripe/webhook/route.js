@@ -112,39 +112,5 @@ export async function POST(req) {
     })
   }
 
-
-  if (event.type === 'charge.refunded') {
-    const charge = event.data.object
-
-    if (charge.payment_intent) {
-      await prisma.advertiserPayment.updateMany({
-        where: { stripePaymentIntentId: charge.payment_intent },
-        data: { status: 'refunded' },
-      })
-    }
-
-    if (charge.invoice) {
-      try {
-        const invoice = await stripe.invoices.retrieve(charge.invoice)
-        const subscriptionId = invoice.subscription
-
-        if (subscriptionId) {
-          try {
-            await stripe.subscriptions.cancel(subscriptionId)
-          } catch (cancelErr) {
-            console.error('[stripe/webhook] subscription cancel error:', cancelErr.message)
-          }
-
-          await prisma.subscription.updateMany({
-            where: { stripeSubscriptionId: subscriptionId },
-            data: { status: 'cancelled' },
-          })
-        }
-      } catch (err) {
-        console.error('[stripe/webhook] FAILED to process refund for invoice:', err)
-      }
-    }
-  }
-
   return NextResponse.json({ received: true })
 }
