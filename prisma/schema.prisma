@@ -33,16 +33,17 @@ model Publication {
 }
 
 model Issue {
-  id            String      @id @default(cuid())
-  publication   Publication @relation(fields: [publicationId], references: [id])
+  id            String        @id @default(cuid())
+  publication   Publication   @relation(fields: [publicationId], references: [id])
   publicationId String
   issueNumber   Int
   title         String
   pdfUrl        String
   coverImageUrl String?    
-  isPublished   Boolean     @default(false)  
-  publishedAt   DateTime    @default(now())
-  views IssueView[]
+  isPublished   Boolean       @default(false)  
+  publishedAt   DateTime      @default(now())
+  views         IssueView[]
+  overlays      PageOverlay[]
 }
 
 model Subscription {
@@ -89,4 +90,25 @@ model IssueView {
 
   user  User  @relation(fields: [userId], references: [id])
   issue Issue @relation(fields: [issueId], references: [id])
+}
+
+model PageOverlay {
+  id         String   @id @default(cuid())
+  issueId    String
+  issue      Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  pageNumber Int      
+
+  type       String   
+  url        String   
+  label      String?  
+  x          Float
+  y          Float
+  width      Float
+  height     Float
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([issueId, pageNumber])
 }
