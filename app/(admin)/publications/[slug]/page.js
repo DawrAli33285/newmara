@@ -105,7 +105,7 @@ export default async function PublicationDetailPage({ params }) {
                       href={`/publications/${publication.slug}/issues/${issue.id}/overlays`}
                       className="text-purple-600 hover:underline text-xs"
                     >
-                      add sale page
+                      add sale pdf
                     </Link>
                     <TogglePublished
                       issueId={issue.id}

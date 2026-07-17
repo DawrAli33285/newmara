@@ -1,40 +1,28 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-
-// Renders one PDF page onto a canvas at a fixed display width, and lets the
-// admin click-drag on top of it to draw a hotspot box. Existing overlays for
-// that page are shown as outlined boxes that can be selected/deleted.
 export default function OverlayEditor({ issueId, pdfUrl }) {
   const [numPages, setNumPages] = useState(0)
   const [pageNumber, setPageNumber] = useState(1)
   const [pageImage, setPageImage] = useState(null)
   const [pageLoading, setPageLoading] = useState(true)
   const [overlays, setOverlays] = useState([])
-  const [drawing, setDrawing] = useState(null) // { startX, startY, x, y, w, h } in fractions
-  const [pendingBox, setPendingBox] = useState(null) // box awaiting type/url before save
+  const [drawing, setDrawing] = useState(null) 
+  const [pendingBox, setPendingBox] = useState(null) 
   const [form, setForm] = useState({ type: 'link', url: '', label: '' })
   const [saving, setSaving] = useState(false)
-  const [pdfVersion, setPdfVersion] = useState(0) // bump to force a PDF re-fetch after inserting a page
+  const [pdfVersion, setPdfVersion] = useState(0) 
   const imgRef = useRef(null)
   const pdfDocRef = useRef(null)
-
-  // Insert-page panel state — shown by default so the admin can pick a page
-  // and a before/after position against the currently loaded PDF right away.
   const [showInsertPanel, setShowInsertPanel] = useState(true)
   const [insertPdf, setInsertPdf] = useState(null)
-  const [insertPosition, setInsertPosition] = useState('after') // 'before' | 'after'
+  const [insertPosition, setInsertPosition] = useState('after') 
   const [inserting, setInserting] = useState(false)
   const [insertError, setInsertError] = useState('')
-
-  // Load the PDF (or reload after a page insert), keep the doc reference so
-  // we can render any page on demand.
   useEffect(() => {
     async function init() {
       const pdfjsLib = await import('pdfjs-dist')
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
-      // Cache-bust so we don't get a stale copy right after re-uploading
-      // the PDF with an inserted page.
       const bustUrl = pdfVersion === 0 ? pdfUrl : `${pdfUrl}${pdfUrl.includes('?') ? '&' : '?'}v=${pdfVersion}`
       const pdf = await pdfjsLib.getDocument({ url: bustUrl }).promise
       pdfDocRef.current = pdf
@@ -43,7 +31,6 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
     init()
   }, [pdfUrl, pdfVersion])
 
-  // Render the current page as an image whenever pageNumber changes.
   useEffect(() => {
     async function renderPage() {
       if (!pdfDocRef.current) return
@@ -60,7 +47,6 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
     if (numPages > 0) renderPage()
   }, [pageNumber, numPages])
 
-  // Fetch existing overlays for this issue, filter to current page.
   const fetchOverlays = useCallback(async () => {
     const res = await fetch(`/api/admin/issues/${issueId}/overlays`)
     if (res.ok) setOverlays(await res.json())
@@ -95,7 +81,6 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
 
   function handleMouseUp() {
     if (!drawing) return
-    // Ignore accidental tiny clicks (no real drag)
     if (drawing.w < 0.02 || drawing.h < 0.02) {
       setDrawing(null)
       return
@@ -138,9 +123,6 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
     if (res.ok) await fetchOverlays()
   }
 
-  // Inserts every page of insertPdf as new pages, positioned before or after the
-  // page currently being viewed, then reloads the PDF and jumps to the
-  // first freshly inserted page so hotspots can be added to it right away.
   async function handleInsertPage() {
     if (!insertPdf) {
       setInsertError('Choose a PDF first.')
@@ -148,10 +130,6 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
     }
     setInserting(true)
     setInsertError('')
-
-    // afterPage is 0-indexed insertion point for the API: "insert so the
-    // new page becomes page N". "Before" the current page means the new
-    // page takes this page's slot; "after" means it goes one further.
     const afterPage = insertPosition === 'before' ? pageNumber - 1 : pageNumber
 
     const formData = new FormData()
@@ -168,9 +146,9 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
 
       setShowInsertPanel(false)
       setInsertPdf(null)
-      setPdfVersion((v) => v + 1) // forces the PDF to reload from storage
-      setPageNumber(data.newPageNumber) // jump straight to the new page
-      await fetchOverlays() // pick up any pageNumber shifts from the API
+      setPdfVersion((v) => v + 1) 
+      setPageNumber(data.newPageNumber) 
+      await fetchOverlays() 
     } catch (err) {
       console.error(err)
       setInsertError(err.message || 'Failed to insert page')
@@ -184,7 +162,7 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-900">Add Page</h3>
+        <h3 className="font-semibold text-gray-900">Add PDF</h3>
         {numPages > 0 && (
           <div className="flex items-center gap-2">
             <button
@@ -292,7 +270,6 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
             <img ref={imgRef} src={pageImage} alt={`Page ${pageNumber}`} className="w-full block pointer-events-none" draggable={false} />
           )}
 
-          {/* Existing overlays for this page */}
           {pageOverlays.map((o) => (
             <div
               key={o.id}
@@ -316,7 +293,6 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
             </div>
           ))}
 
-          {/* Box currently being drawn or awaiting save */}
           {box && (
             <div
               className="absolute border-2 border-dashed border-green-500 bg-green-500/10 pointer-events-none"

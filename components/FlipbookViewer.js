@@ -29,6 +29,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
       const isFs = !!document.fullscreenElement;
       const mobile = vw < 768;
       setIsMobile(mobile);
+
       const availWidth = vw - (mobile ? 12 : 24);
       const availHeight = isFs ? vh - 40 : vh - (mobile ? 100 : 130);
 
@@ -185,6 +186,39 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
   function resetZoom() {
     setZoom(1);
   }
+  const pinchState = useRef({ initialDistance: 0, initialZoom: 1 });
+
+  function getTouchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function handleTouchStart(e) {
+    if (e.touches.length === 2) {
+      pinchState.current.initialDistance = getTouchDistance(e.touches);
+      pinchState.current.initialZoom = zoom;
+    }
+  }
+
+  function handleTouchMove(e) {
+    if (e.touches.length === 2 && pinchState.current.initialDistance > 0) {
+      e.preventDefault();
+      const dist = getTouchDistance(e.touches);
+      const scale = dist / pinchState.current.initialDistance;
+      const newZoom = Math.min(
+        3,
+        Math.max(1, pinchState.current.initialZoom * scale)
+      );
+      setZoom(newZoom);
+    }
+  }
+
+  function handleTouchEnd(e) {
+    if (e.touches.length < 2) {
+      pinchState.current.initialDistance = 0;
+    }
+  }
 
   function getYouTubeId(url) {
     const m = url.match(
@@ -287,7 +321,11 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
           overflow: zoom > 1 ? "auto" : "visible",
           maxWidth: "100%",
           minHeight: isFullscreen ? "90vh" : "78vh",
+          touchAction: "pan-x pan-y",
         }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div
           style={{
@@ -463,21 +501,21 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
         >
           ›
         </button>
-        <div className="w-px h-5 bg-gray-200 mx-1 shrink-0 hidden sm:block" />
+        <div className="w-px h-5 bg-gray-200 mx-1 shrink-0" />
         <button
           onClick={zoomOut}
-          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm shrink-0 hidden sm:inline-flex"
+          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm shrink-0 inline-flex"
           title="Zoom out"
           disabled={zoom <= 1}
         >
           −
         </button>
-        <span className="text-xs text-gray-500 min-w-[36px] text-center shrink-0 hidden sm:inline-block">
+        <span className="text-xs text-gray-500 min-w-[36px] text-center shrink-0 inline-block">
           {Math.round(zoom * 100)}%
         </span>
         <button
           onClick={zoomIn}
-          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm shrink-0 hidden sm:inline-flex"
+          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm shrink-0 inline-flex"
           title="Zoom in"
           disabled={zoom >= 3}
         >
@@ -486,7 +524,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
         {zoom !== 1 && (
           <button
             onClick={resetZoom}
-            className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-xs shrink-0 hidden sm:inline-flex"
+            className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-xs shrink-0 inline-flex"
             title="Reset zoom"
           >
             ⟲
