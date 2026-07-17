@@ -21,6 +21,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
   const [vimeoThumbnails, setVimeoThumbnails] = useState({});
   const flipBook = useRef(null);
   const containerRef = useRef(null);
+  const pageViewTimeout = useRef(null);
 
   useEffect(() => {
     function computeSize() {
@@ -103,6 +104,12 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ issueId }),
               }).catch(() => {});
+
+              fetch("/api/views/page", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ issueId, pageNumber: 1 }),
+              }).catch(() => {});
             }
           }
         }
@@ -176,6 +183,28 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isFullscreen]);
+
+  useEffect(() => {
+    return () => {
+      if (pageViewTimeout.current) clearTimeout(pageViewTimeout.current);
+    };
+  }, []);
+
+  function handleFlip(e) {
+    const newPage = e.data;
+    setCurrentPage(newPage);
+
+    if (!issueId) return;
+
+    if (pageViewTimeout.current) clearTimeout(pageViewTimeout.current);
+    pageViewTimeout.current = setTimeout(() => {
+      fetch("/api/views/page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ issueId, pageNumber: newPage + 1 }),
+      }).catch(() => {});
+    }, 800);
+  }
 
   function zoomIn() {
     setZoom((z) => Math.min(z + 0.25, 3));
@@ -347,7 +376,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
             flippingTime={600}
             startPage={0}
             mobileScrollSupport={true}
-            onFlip={(e) => setCurrentPage(e.data)}
+            onFlip={handleFlip}
             className="shadow-2xl"
           >
             {pages.map((src, i) => {

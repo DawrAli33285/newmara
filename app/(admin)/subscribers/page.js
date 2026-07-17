@@ -16,7 +16,7 @@ export default async function SubscribersPage({ searchParams }) {
     }),
   }
 
-  const [subscribers, totalActive, totalExpired, totalCancelled, topIssues, topPublications, recentViews] = await Promise.all([
+  const [subscribers, totalActive, totalExpired, totalCancelled, topIssues, topPublications, topPages, recentViews] = await Promise.all([
     prisma.subscription.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -36,6 +36,12 @@ export default async function SubscribersPage({ searchParams }) {
       where: { status: 'active' },
       _count: { publicationId: true },
       orderBy: { _count: { publicationId: 'desc' } },
+      take: 5,
+    }),
+    prisma.pageView.groupBy({
+      by: ['issueId', 'pageNumber'],
+      _count: { pageNumber: true },
+      orderBy: { _count: { pageNumber: 'desc' } },
       take: 5,
     }),
     prisma.issueView.count({
@@ -62,6 +68,16 @@ export default async function SubscribersPage({ searchParams }) {
         select: { title: true },
       })
       return { ...p, publication }
+    })
+  )
+
+  const topPagesHydrated = await Promise.all(
+    topPages.map(async (p) => {
+      const issue = await prisma.issue.findUnique({
+        where: { id: p.issueId },
+        include: { publication: { select: { title: true } } },
+      })
+      return { ...p, issue }
     })
   )
 
@@ -175,7 +191,7 @@ export default async function SubscribersPage({ searchParams }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="font-semibold text-gray-900">Most Read Issues</h3>
@@ -222,6 +238,36 @@ export default async function SubscribersPage({ searchParams }) {
                     <div className="text-right">
                       <p className="text-sm font-bold text-purple-600">{p._count.publicationId}</p>
                       <p className="text-xs text-gray-400">subscribers</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">Most Read Pages</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Ranked by total page opens</p>
+            </div>
+            {topPagesHydrated.length === 0 ? (
+              <p className="text-gray-400 text-sm p-6">No page reading data yet.</p>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {topPagesHydrated.map((p, idx) => (
+                  <div key={`${p.issueId}-${p.pageNumber}`} className="px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-gray-400 w-4">#{idx + 1}</span>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Page {p.pageNumber}</p>
+                        <p className="text-xs text-gray-400">
+                          {p.issue?.title || 'Unknown'} · {p.issue?.publication?.title || '—'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-teal-600">{p._count.pageNumber}</p>
+                      <p className="text-xs text-gray-400">reads</p>
                     </div>
                   </div>
                 ))}
