@@ -18,6 +18,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
   const [isMobile, setIsMobile] = useState(false);
   const [overlays, setOverlays] = useState([]);
   const [activeVideo, setActiveVideo] = useState(null);
+  const [vimeoThumbnails, setVimeoThumbnails] = useState({});
   const flipBook = useRef(null);
   const containerRef = useRef(null);
 
@@ -28,15 +29,12 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
       const isFs = !!document.fullscreenElement;
       const mobile = vw < 768;
       setIsMobile(mobile);
-
-      const availWidth = vw - 24;
-      const availHeight = isFs ? vh - 40 : vh - 130;
+      const availWidth = vw - (mobile ? 12 : 24);
+      const availHeight = isFs ? vh - 40 : vh - (mobile ? 100 : 130);
 
       const ratio = 1.414;
 
-      let pageWidth = mobile
-        ? Math.min(availWidth, 500)
-        : Math.min(availWidth / 2, 800);
+      let pageWidth = mobile ? availWidth : Math.min(availWidth / 2, 800);
       let pageHeight = pageWidth * ratio;
 
       if (pageHeight > availHeight) {
@@ -44,8 +42,8 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
         pageWidth = pageHeight / ratio;
       }
 
-      pageWidth = Math.max(pageWidth, mobile ? 240 : 300);
-      pageHeight = Math.max(pageHeight, mobile ? 340 : 424);
+      pageWidth = Math.max(pageWidth, mobile ? 260 : 300);
+      pageHeight = Math.max(pageHeight, mobile ? 368 : 424);
 
       setDimensions({
         width: Math.round(pageWidth),
@@ -126,6 +124,24 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
       .catch(() => setOverlays([]));
   }, [issueId]);
 
+  useEffect(() => {
+    const vimeoOverlays = overlays.filter(
+      (o) => o.type === "video" && !o.thumbnail && /vimeo\.com/.test(o.url)
+    );
+    if (vimeoOverlays.length === 0) return;
+
+    vimeoOverlays.forEach((o) => {
+      fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(o.url)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && data.thumbnail_url) {
+            setVimeoThumbnails((prev) => ({ ...prev, [o.url]: data.thumbnail_url }));
+          }
+        })
+        .catch(() => {});
+    });
+  }, [overlays]);
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       containerRef.current?.requestFullscreen();
@@ -170,14 +186,19 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
     setZoom(1);
   }
 
-  function getEmbedInfo(url) {
-    const yt = url.match(
+  function getYouTubeId(url) {
+    const m = url.match(
       /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]+)/
     );
-    if (yt)
+    return m ? m[1] : null;
+  }
+
+  function getEmbedInfo(url) {
+    const ytId = getYouTubeId(url);
+    if (ytId)
       return {
         kind: "iframe",
-        src: `https://www.youtube.com/embed/${yt[1]}?autoplay=1`,
+        src: `https://www.youtube.com/embed/${ytId}?autoplay=1`,
       };
 
     const vimeo = url.match(/vimeo\.com\/(\d+)/);
@@ -190,6 +211,22 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
     if (/\.mp4($|\?)/.test(url)) return { kind: "video", src: url };
 
     return { kind: "iframe", src: url };
+  }
+  function getOverlayThumbnail(o) {
+    if (o.thumbnail) return { type: "image", src: o.thumbnail };
+    if (o.type !== "video") return null;
+
+    const ytId = getYouTubeId(o.url);
+    if (ytId) return { type: "image", src: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` };
+
+    if (/vimeo\.com/.test(o.url)) {
+      const src = vimeoThumbnails[o.url];
+      return src ? { type: "image", src } : null;
+    }
+
+    if (/\.mp4($|\?)/.test(o.url)) return { type: "video", src: o.url };
+
+    return null;
   }
 
   const totalPages = pages.length;
@@ -300,72 +337,107 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                       display: "block",
                     }}
                   />
-                  {pageOverlays.map((o) => (
-                    <button
-                      key={o.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        if (o.type === "video") {
-                          setActiveVideo(o.url);
-                        } else {
-                          window.open(o.url, "_blank", "noopener,noreferrer");
+                  {pageOverlays.map((o) => {
+                    const thumb = getOverlayThumbnail(o);
+                    return (
+                      <button
+                        key={o.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          if (o.type === "video") {
+                            setActiveVideo(o.url);
+                          } else {
+                            window.open(o.url, "_blank", "noopener,noreferrer");
+                          }
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        title={
+                          o.label ||
+                          (o.type === "video" ? "Watch video" : "Open link")
                         }
-                      }}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onTouchStart={(e) => e.stopPropagation()}
-                      title={
-                        o.label ||
-                        (o.type === "video" ? "Watch video" : "Open link")
-                      }
-                      className="group"
-                      style={{
-                        position: "absolute",
-                        left: `${o.x * 100}%`,
-                        top: `${o.y * 100}%`,
-                        width: `${o.width * 100}%`,
-                        height: `${o.height * 100}%`,
-                        cursor: "pointer",
-                        background: "transparent",
-                        border: "none",
-                        padding: 0,
-                        zIndex: 5,
-                      }}
-                    >
-                      <span
-                        className="absolute inset-0 rounded transition"
+                        className="group"
                         style={{
-                          boxShadow: "0 0 0 2px rgba(37, 99, 235, 0)",
+                          position: "absolute",
+                          left: `${o.x * 100}%`,
+                          top: `${o.y * 100}%`,
+                          width: `${o.width * 100}%`,
+                          height: `${o.height * 100}%`,
+                          cursor: "pointer",
+                          background: "transparent",
+                          border: "none",
+                          padding: 0,
+                          zIndex: 5,
+                          overflow: "hidden",
+                          borderRadius: 4,
                         }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.boxShadow =
-                            "0 0 0 2px rgba(37, 99, 235, 0.6)";
-                          e.currentTarget.style.background =
-                            "rgba(37, 99, 235, 0.08)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.boxShadow =
-                            "0 0 0 2px rgba(37, 99, 235, 0)";
-                          e.currentTarget.style.background = "transparent";
-                        }}
-                      />
-                      {o.type === "video" && (
+                      >
+                        {thumb &&
+                          (thumb.type === "image" ? (
+                            <img
+                              src={thumb.src}
+                              alt=""
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                          ) : (
+                            <video
+                              src={thumb.src}
+                              muted
+                              preload="metadata"
+                              playsInline
+                              style={{
+                                position: "absolute",
+                                inset: 0,
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                          ))}
                         <span
-                          className="absolute flex items-center justify-center rounded-full bg-white/90 shadow-md"
+                          className="absolute inset-0 rounded transition"
                           style={{
-                            width: 36,
-                            height: 36,
-                            top: "50%",
-                            left: "50%",
-                            transform: "translate(-50%, -50%)",
+                            boxShadow: "0 0 0 2px rgba(37, 99, 235, 0)",
                           }}
-                        >
-                          <span style={{ marginLeft: 2, fontSize: 14 }}>▶</span>
-                        </span>
-                      )}
-                    </button>
-                  ))}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.boxShadow =
+                              "0 0 0 2px rgba(37, 99, 235, 0.6)";
+                            if (!thumb) {
+                              e.currentTarget.style.background =
+                                "rgba(37, 99, 235, 0.08)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.boxShadow =
+                              "0 0 0 2px rgba(37, 99, 235, 0)";
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        />
+                        {o.type === "video" && (
+                          <span
+                            className="absolute flex items-center justify-center rounded-full bg-white/90 shadow-md"
+                            style={{
+                              width: 36,
+                              height: 36,
+                              top: "50%",
+                              left: "50%",
+                              transform: "translate(-50%, -50%)",
+                            }}
+                          >
+                            <span style={{ marginLeft: 2, fontSize: 14 }}>▶</span>
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               );
             })}
