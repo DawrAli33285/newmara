@@ -62,24 +62,24 @@ export default async function ReadPage({ params, searchParams }) {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="font-bold text-gray-900">{publication.title}</h1>
-            <p className="text-sm text-gray-500">{selectedIssue.title}</p>
-            <a href="/" className="text-sm text-gray-400 hover:text-gray-700 transition">Home</a>
+            <h1 className="font-bold text-gray-900 text-sm leading-tight">{publication.title}</h1>
+            <p className="text-xs text-gray-500 leading-tight">{selectedIssue.title}</p>
           </div>
+          <a href="/" className="text-xs text-gray-400 hover:text-gray-700 transition">Home</a>
         </div>
         <BackButton />
       </div>
 
       {publication.issues.length > 1 && (
-        <div className="bg-white border-b border-gray-100 px-6 py-3 flex gap-2 overflow-x-auto">
+        <div className="bg-white border-b border-gray-100 px-6 py-2 flex gap-2 overflow-x-auto sticky top-[45px] z-30">
           {publication.issues.map((issue) => (
             <a
               key={issue.id}
               href={`/read/${slug}?issue=${issue.id}`}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition ${
+              className={`px-4 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${
                 issue.id === selectedIssue.id
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -91,8 +91,9 @@ export default async function ReadPage({ params, searchParams }) {
         </div>
       )}
 
-      <div className="py-10 px-4">
-      <FlipbookWrapper pdfUrl={selectedIssue.pdfUrl} title={selectedIssue.title} issueId={selectedIssue.id} />
+
+      <div className="px-2">
+        <FlipbookWrapper pdfUrl={selectedIssue.pdfUrl} title={selectedIssue.title} issueId={selectedIssue.id} />
       </div>
     </div>
   )

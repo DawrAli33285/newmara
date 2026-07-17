@@ -11,8 +11,48 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
   const [currentPage, setCurrentPage] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [zoom, setZoom] = useState(1)
+  const [dimensions, setDimensions] = useState({ width: 550, height: 778 })
+  const [isMobile, setIsMobile] = useState(false)
   const flipBook = useRef(null)
   const containerRef = useRef(null)
+
+  useEffect(() => {
+    function computeSize() {
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const isFs = !!document.fullscreenElement
+      const mobile = vw < 768
+      setIsMobile(mobile)
+
+      const availWidth = vw - 24
+      const availHeight = (isFs ? vh - 40 : vh - 130) 
+
+      const ratio = 1.414
+
+      let pageWidth = mobile
+        ? Math.min(availWidth, 500)
+        : Math.min(availWidth / 2, 800)
+      let pageHeight = pageWidth * ratio
+
+      if (pageHeight > availHeight) {
+        pageHeight = availHeight
+        pageWidth = pageHeight / ratio
+      }
+
+      pageWidth = Math.max(pageWidth, mobile ? 240 : 300)
+      pageHeight = Math.max(pageHeight, mobile ? 340 : 424)
+
+      setDimensions({ width: Math.round(pageWidth), height: Math.round(pageHeight) })
+    }
+
+    computeSize()
+    window.addEventListener('resize', computeSize)
+    document.addEventListener('fullscreenchange', computeSize)
+    return () => {
+      window.removeEventListener('resize', computeSize)
+      document.removeEventListener('fullscreenchange', computeSize)
+    }
+  }, [])
 
   useEffect(() => {
     async function loadPDF() {
@@ -30,15 +70,16 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
         setLoadingProgress({ current: 0, total: numPages })
 
         const collectedPages = []
+        const RENDER_SCALE = 2.5
 
         for (let i = 1; i <= numPages; i++) {
           const page = await pdf.getPage(i)
-          const viewport = page.getViewport({ scale: 1.5 })
+          const viewport = page.getViewport({ scale: RENDER_SCALE })
           const canvas = document.createElement('canvas')
           canvas.width = viewport.width
           canvas.height = viewport.height
           await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
 
           collectedPages.push(dataUrl)
           setLoadingProgress({ current: i, total: numPages })
@@ -130,67 +171,11 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
   return (
     <div
       ref={containerRef}
-      className={`flex flex-col items-center gap-6 ${isFullscreen ? 'bg-gray-900 min-h-screen justify-center p-8' : ''}`}
+      className={`flex flex-col items-center ${isFullscreen ? 'bg-gray-900' : ''}`}
+      style={{ minHeight: isFullscreen ? '100vh' : undefined, paddingBottom: '90px' }}
     >
-      <div className="flex items-center gap-3 bg-white rounded-full shadow-md px-6 py-2">
-        <button
-          onClick={() => flipBook.current?.pageFlip().flipPrev()}
-          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-700 text-xl"
-          title="Previous page"
-        >
-          ‹
-        </button>
-        <span className="text-sm text-gray-600 min-w-[100px] text-center font-medium">
-          {currentPage + 1} / {totalPages}
-        </span>
-        <button
-          onClick={() => flipBook.current?.pageFlip().flipNext()}
-          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-700 text-xl"
-          title="Next page"
-        >
-          ›
-        </button>
-        <div className="w-px h-5 bg-gray-200 mx-1" />
-        <button
-          onClick={zoomOut}
-          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm"
-          title="Zoom out"
-          disabled={zoom <= 1}
-        >
-          −
-        </button>
-        <span className="text-xs text-gray-500 min-w-[36px] text-center">
-          {Math.round(zoom * 100)}%
-        </span>
-        <button
-          onClick={zoomIn}
-          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm"
-          title="Zoom in"
-          disabled={zoom >= 3}
-        >
-          +
-        </button>
-        {zoom !== 1 && (
-          <button
-            onClick={resetZoom}
-            className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-xs"
-            title="Reset zoom"
-          >
-            ⟲
-          </button>
-        )}
-        <div className="w-px h-5 bg-gray-200 mx-1" />
-        <button
-          onClick={toggleFullscreen}
-          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm"
-          title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-        >
-          {isFullscreen ? '✕' : '⛶'}
-        </button>
-      </div>
-
       {loadingProgress.current < loadingProgress.total && (
-        <div className="w-64">
+        <div className="w-64 mt-4">
           <div className="bg-gray-200 rounded-full h-1">
             <div
               className="bg-blue-600 h-1 rounded-full transition-all duration-300"
@@ -204,24 +189,28 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
       )}
 
       <div
+        className="flex items-center justify-center w-full"
         style={{
           overflow: zoom > 1 ? 'auto' : 'visible',
           maxWidth: '100%',
-          maxHeight: isFullscreen ? '85vh' : '80vh',
+          minHeight: isFullscreen ? '90vh' : '78vh',
         }}
       >
         <div
           style={{
+            width: isMobile ? dimensions.width : dimensions.width * 2,
             transform: `scale(${zoom})`,
-            transformOrigin: 'center top',
+            transformOrigin: 'center center',
             transition: 'transform 0.2s ease',
           }}
         >
           <HTMLFlipBook
+            key={`${dimensions.width}x${dimensions.height}-${isMobile}`}
             ref={flipBook}
-            width={420}
-            height={594}
+            width={dimensions.width}
+            height={dimensions.height}
             size="fixed"
+            usePortrait={isMobile}
             showCover={true}
             drawShadow={true}
             flippingTime={600}
@@ -235,17 +224,69 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                 <img
                   src={src}
                   alt={`Page ${i + 1}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
                 />
               </div>
             ))}
           </HTMLFlipBook>
         </div>
       </div>
-
-      <p className="text-xs text-gray-400">
-        Click pages or use arrows to navigate · Swipe on mobile · Use +/− to zoom
-      </p>
+      <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 sm:gap-3 bg-white rounded-full shadow-xl px-3 sm:px-6 py-1.5 sm:py-2 border border-gray-100 max-w-[95vw] overflow-x-auto">
+        <button
+          onClick={() => flipBook.current?.pageFlip().flipPrev()}
+          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-700 text-xl shrink-0"
+          title="Previous page"
+        >
+          ‹
+        </button>
+        <span className="text-xs sm:text-sm text-gray-600 min-w-[70px] sm:min-w-[100px] text-center font-medium shrink-0">
+          {currentPage + 1} / {totalPages}
+        </span>
+        <button
+          onClick={() => flipBook.current?.pageFlip().flipNext()}
+          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-700 text-xl shrink-0"
+          title="Next page"
+        >
+          ›
+        </button>
+        <div className="w-px h-5 bg-gray-200 mx-1 shrink-0 hidden sm:block" />
+        <button
+          onClick={zoomOut}
+          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm shrink-0 hidden sm:inline-flex"
+          title="Zoom out"
+          disabled={zoom <= 1}
+        >
+          −
+        </button>
+        <span className="text-xs text-gray-500 min-w-[36px] text-center shrink-0 hidden sm:inline-block">
+          {Math.round(zoom * 100)}%
+        </span>
+        <button
+          onClick={zoomIn}
+          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm shrink-0 hidden sm:inline-flex"
+          title="Zoom in"
+          disabled={zoom >= 3}
+        >
+          +
+        </button>
+        {zoom !== 1 && (
+          <button
+            onClick={resetZoom}
+            className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-xs shrink-0 hidden sm:inline-flex"
+            title="Reset zoom"
+          >
+            ⟲
+          </button>
+        )}
+        <div className="w-px h-5 bg-gray-200 mx-1 shrink-0" />
+        <button
+          onClick={toggleFullscreen}
+          className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm shrink-0"
+          title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        >
+          {isFullscreen ? '✕' : '⛶'}
+        </button>
+      </div>
     </div>
   )
 }
