@@ -15,20 +15,33 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
   const [pendingBox, setPendingBox] = useState(null) // box awaiting type/url before save
   const [form, setForm] = useState({ type: 'link', url: '', label: '' })
   const [saving, setSaving] = useState(false)
+  const [pdfVersion, setPdfVersion] = useState(0) // bump to force a PDF re-fetch after inserting a page
   const imgRef = useRef(null)
   const pdfDocRef = useRef(null)
 
-  // Load the PDF once, keep the doc reference so we can render any page on demand.
+  // Insert-page panel state — shown by default so the admin can pick a page
+  // and a before/after position against the currently loaded PDF right away.
+  const [showInsertPanel, setShowInsertPanel] = useState(true)
+  const [insertPdf, setInsertPdf] = useState(null)
+  const [insertPosition, setInsertPosition] = useState('after') // 'before' | 'after'
+  const [inserting, setInserting] = useState(false)
+  const [insertError, setInsertError] = useState('')
+
+  // Load the PDF (or reload after a page insert), keep the doc reference so
+  // we can render any page on demand.
   useEffect(() => {
     async function init() {
       const pdfjsLib = await import('pdfjs-dist')
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
-      const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise
+      // Cache-bust so we don't get a stale copy right after re-uploading
+      // the PDF with an inserted page.
+      const bustUrl = pdfVersion === 0 ? pdfUrl : `${pdfUrl}${pdfUrl.includes('?') ? '&' : '?'}v=${pdfVersion}`
+      const pdf = await pdfjsLib.getDocument({ url: bustUrl }).promise
       pdfDocRef.current = pdf
       setNumPages(pdf.numPages)
     }
     init()
-  }, [pdfUrl])
+  }, [pdfUrl, pdfVersion])
 
   // Render the current page as an image whenever pageNumber changes.
   useEffect(() => {
@@ -125,12 +138,53 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
     if (res.ok) await fetchOverlays()
   }
 
+  // Inserts every page of insertPdf as new pages, positioned before or after the
+  // page currently being viewed, then reloads the PDF and jumps to the
+  // first freshly inserted page so hotspots can be added to it right away.
+  async function handleInsertPage() {
+    if (!insertPdf) {
+      setInsertError('Choose a PDF first.')
+      return
+    }
+    setInserting(true)
+    setInsertError('')
+
+    // afterPage is 0-indexed insertion point for the API: "insert so the
+    // new page becomes page N". "Before" the current page means the new
+    // page takes this page's slot; "after" means it goes one further.
+    const afterPage = insertPosition === 'before' ? pageNumber - 1 : pageNumber
+
+    const formData = new FormData()
+    formData.append('pdf', insertPdf)
+    formData.append('afterPage', String(afterPage))
+
+    try {
+      const res = await fetch(`/api/admin/issues/${issueId}/insert-page`, {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Insert failed')
+
+      setShowInsertPanel(false)
+      setInsertPdf(null)
+      setPdfVersion((v) => v + 1) // forces the PDF to reload from storage
+      setPageNumber(data.newPageNumber) // jump straight to the new page
+      await fetchOverlays() // pick up any pageNumber shifts from the API
+    } catch (err) {
+      console.error(err)
+      setInsertError(err.message || 'Failed to insert page')
+    } finally {
+      setInserting(false)
+    }
+  }
+
   const box = pendingBox || (drawing && drawing.w > 0 ? { x: drawing.x, y: drawing.y, width: drawing.w, height: drawing.h } : null)
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-900">Page Links &amp; Videos</h3>
+        <h3 className="font-semibold text-gray-900">Add Page</h3>
         {numPages > 0 && (
           <div className="flex items-center gap-2">
             <button
@@ -154,9 +208,72 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
         )}
       </div>
 
-      <p className="text-xs text-gray-500 mb-3">
-        Click and drag on the page to place a link or video hotspot. Existing hotspots are outlined in blue.
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs text-gray-500">
+          Click and drag on the page to place a link or video hotspot. Existing hotspots are outlined in blue.
+        </p>
+        <button
+          onClick={() => { setShowInsertPanel((v) => !v); setInsertError('') }}
+          className="text-xs font-medium text-purple-600 hover:underline shrink-0 ml-4"
+        >
+          {showInsertPanel ? 'Hide add page' : '+ Add page'}
+        </button>
+      </div>
+
+      {showInsertPanel && (
+        <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+          <p className="text-sm font-medium text-gray-900 mb-2">
+            {numPages > 0 ? `Add a page ${insertPosition === 'before' ? 'before' : 'after'} page ${pageNumber}` : 'Add a page'}
+          </p>
+          <p className="text-xs text-gray-500 mb-3">
+            Upload a PDF — its pages are merged into this issue at the chosen position. Once added, you can add link and video hotspots to them.
+          </p>
+
+          {numPages > 0 && (
+            <div className="mb-3">
+              <label className="text-xs text-gray-500 block mb-1">Position</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setInsertPosition('before')}
+                  className={`text-sm px-3 py-1.5 rounded-lg border ${insertPosition === 'before' ? 'bg-[#1C3664] text-white border-[#1C3664]' : 'border-gray-200 text-gray-600'}`}
+                >
+                  Before page {pageNumber}
+                </button>
+                <button
+                  onClick={() => setInsertPosition('after')}
+                  className={`text-sm px-3 py-1.5 rounded-lg border ${insertPosition === 'after' ? 'bg-[#1C3664] text-white border-[#1C3664]' : 'border-gray-200 text-gray-600'}`}
+                >
+                  After page {pageNumber}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="flex-1 min-w-[220px]">
+              <label className="text-xs text-gray-500 block mb-1">Page PDF</label>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setInsertPdf(e.target.files[0] || null)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white"
+              />
+            </div>
+
+            <button
+              onClick={handleInsertPage}
+              disabled={inserting || !insertPdf}
+              className="text-sm px-4 py-2 rounded-lg bg-[#1C3664] text-white hover:bg-blue-900 disabled:opacity-50 shrink-0"
+            >
+              {inserting ? 'Merging…' : 'Add page'}
+            </button>
+          </div>
+
+          {insertError && (
+            <p className="text-red-600 text-xs mt-2">{insertError}</p>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-6 flex-wrap">
         <div
