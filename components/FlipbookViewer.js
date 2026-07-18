@@ -17,7 +17,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
   const [dimensions, setDimensions] = useState({ width: 550, height: 778 });
   const [isMobile, setIsMobile] = useState(false);
   const [overlays, setOverlays] = useState([]);
-  const [activeVideo, setActiveVideo] = useState(null);
+  const [activeVideo, setActiveVideo] = useState(null); // { pageNum, url } | null
   const [vimeoThumbnails, setVimeoThumbnails] = useState({});
   const flipBook = useRef(null);
   const containerRef = useRef(null);
@@ -413,7 +413,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                           e.stopPropagation();
                           e.preventDefault();
                           if (o.type === "video") {
-                            setActiveVideo(o.url);
+                            setActiveVideo({ pageNum, url: o.url });
                           } else {
                             window.open(o.url, "_blank", "noopener,noreferrer");
                           }
@@ -505,6 +505,63 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                       </button>
                     );
                   })}
+                  {activeVideo && activeVideo.pageNum === pageNum && (
+                    <div
+                      className="absolute inset-0 bg-black flex items-center justify-center"
+                      style={{ zIndex: 20, width: "100%", height: "100%" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveVideo(null);
+                      }}
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveVideo(null);
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        className="absolute top-2 right-2 text-white text-2xl leading-none hover:text-gray-300"
+                        style={{ zIndex: 21 }}
+                        title="Close"
+                      >
+                        ✕
+                      </button>
+                      {(() => {
+                        const embed = getEmbedInfo(activeVideo.url);
+                        return embed.kind === "video" ? (
+                          <video
+                            src={embed.src}
+                            controls
+                            autoPlay
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "contain",
+                            }}
+                          />
+                        ) : (
+                          <iframe
+                            src={embed.src}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              width: "100%",
+                              height: "100%",
+                              border: 0,
+                            }}
+                            allow="autoplay; fullscreen; picture-in-picture"
+                            allowFullScreen
+                          />
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -568,60 +625,6 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
           {isFullscreen ? "✕" : "⛶"}
         </button>
       </div>
-      {activeVideo && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 px-4"
-          onClick={() => setActiveVideo(null)}
-        >
-          <div
-            className="relative bg-black rounded-lg overflow-hidden"
-            style={{
-              width: "100%",
-              maxWidth: "900px",
-              aspectRatio: "16 / 9",
-              maxHeight: "80vh",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setActiveVideo(null)}
-              className="absolute -top-10 right-0 text-white text-2xl leading-none hover:text-gray-300 z-10"
-              title="Close"
-            >
-              ✕
-            </button>
-            {(() => {
-              const embed = getEmbedInfo(activeVideo);
-              return embed.kind === "video" ? (
-                <video
-                  src={embed.src}
-                  controls
-                  autoPlay
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                  }}
-                />
-              ) : (
-                <iframe
-                  src={embed.src}
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    border: 0,
-                  }}
-                  allow="autoplay; fullscreen; picture-in-picture"
-                  allowFullScreen
-                />
-              );
-            })()}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

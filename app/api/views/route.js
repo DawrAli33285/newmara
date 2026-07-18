@@ -7,6 +7,10 @@ export async function POST(req) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  if (session.user.role === 'admin') {
+    return NextResponse.json({ success: true, skipped: true })
+  }
+
   const { issueId } = await req.json()
   if (!issueId) return NextResponse.json({ error: 'Missing issueId' }, { status: 400 })
 

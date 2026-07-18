@@ -22,6 +22,9 @@ export async function DELETE(req, { params }) {
 
     await prisma.$transaction([
       prisma.subscription.deleteMany({ where: { publicationId: id } }),
+      prisma.issueView.deleteMany({ where: { issue: { publicationId: id } } }),
+      prisma.pageView.deleteMany({ where: { issue: { publicationId: id } } }),
+      prisma.pageOverlay.deleteMany({ where: { issue: { publicationId: id } } }),
       prisma.issue.deleteMany({ where: { publicationId: id } }),
       prisma.publication.delete({ where: { id } }),
     ])
