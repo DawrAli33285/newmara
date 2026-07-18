@@ -12,3 +12,16 @@ export async function PATCH(req, { params }) {
 
   return NextResponse.json({ success: true })
 }
+
+export async function DELETE(req, { params }) {
+  const { id } = await params
+
+  await prisma.$transaction([
+    prisma.pageView.deleteMany({ where: { issueId: id } }),
+    prisma.issueView.deleteMany({ where: { issueId: id } }),
+    prisma.pageOverlay.deleteMany({ where: { issueId: id } }),
+    prisma.issue.delete({ where: { id } }),
+  ])
+
+  return NextResponse.json({ success: true })
+}

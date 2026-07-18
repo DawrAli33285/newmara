@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import TogglePublished from "./TogglePublished";
 import CoverUpload from "./CoverUpload";
+import DeleteIssue from "./DeleteIssue";
 
 export default async function PublicationDetailPage({ params }) {
   const { slug } = await params;
@@ -111,6 +112,7 @@ export default async function PublicationDetailPage({ params }) {
                       issueId={issue.id}
                       isPublished={issue.isPublished}
                     />
+                    <DeleteIssue issueId={issue.id} issueTitle={issue.title} />
                   </td>
                 </tr>
               ))}
