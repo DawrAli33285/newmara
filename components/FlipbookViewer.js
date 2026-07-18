@@ -17,7 +17,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
   const [dimensions, setDimensions] = useState({ width: 550, height: 778 });
   const [isMobile, setIsMobile] = useState(false);
   const [overlays, setOverlays] = useState([]);
-  const [activeVideo, setActiveVideo] = useState(null); // { pageNum, url } | null
+  const [activeVideo, setActiveVideo] = useState(null); 
   const [vimeoThumbnails, setVimeoThumbnails] = useState({});
   const flipBook = useRef(null);
   const containerRef = useRef(null);
@@ -176,13 +176,17 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
         setZoom((z) => Math.min(z + 0.25, 3));
       } else if (e.key === "-" || e.key === "_") {
         setZoom((z) => Math.max(z - 0.25, 1));
-      } else if (e.key === "Escape" && isFullscreen) {
-        document.exitFullscreen();
+      } else if (e.key === "Escape") {
+        if (activeVideo) {
+          setActiveVideo(null);
+        } else if (isFullscreen) {
+          document.exitFullscreen();
+        }
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFullscreen]);
+  }, [isFullscreen, activeVideo]);
 
   useEffect(() => {
     return () => {
@@ -376,6 +380,8 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
             flippingTime={600}
             startPage={0}
             mobileScrollSupport={true}
+            clickEventForward={true}
+            useMouseEvents={true}
             onFlip={handleFlip}
             className="shadow-2xl"
           >
@@ -409,18 +415,16 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                     return (
                       <button
                         key={o.id}
+                        type="button"
                         onClick={(e) => {
-                          e.stopPropagation();
                           e.preventDefault();
+                          e.stopPropagation();
                           if (o.type === "video") {
                             setActiveVideo({ pageNum, url: o.url });
                           } else {
                             window.open(o.url, "_blank", "noopener,noreferrer");
                           }
                         }}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onTouchStart={(e) => e.stopPropagation()}
                         title={
                           o.label ||
                           (o.type === "video" ? "Watch video" : "Open link")
@@ -428,10 +432,13 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                         className="group"
                         style={{
                           position: "absolute",
-                          left: `${o.x * 100}%`,
+                          left: 0,
                           top: `${o.y * 100}%`,
-                          width: `${o.width * 100}%`,
-                          height: `${o.height * 100}%`,
+                          width: "100%",
+                          height:
+                            o.type === "video"
+                              ? `max(${o.height * 100}%, 300px)`
+                              : `${o.height * 100}%`,
                           cursor: "pointer",
                           background: "transparent",
                           border: "none",
@@ -452,6 +459,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                                 width: "100%",
                                 height: "100%",
                                 objectFit: "cover",
+                                pointerEvents: "none",
                               }}
                             />
                           ) : (
@@ -466,25 +474,34 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                                 width: "100%",
                                 height: "100%",
                                 objectFit: "cover",
+                                pointerEvents: "none",
                               }}
                             />
                           ))}
                         <span
                           className="absolute inset-0 rounded transition"
                           style={{
-                            boxShadow: "0 0 0 2px rgba(37, 99, 235, 0)",
+                            boxShadow:
+                              o.type === "video"
+                                ? "0 0 0 2px rgba(255,255,255,0.35), inset 0 0 40px rgba(0,0,0,0.15)"
+                                : "0 0 0 2px rgba(37, 99, 235, 0.45)",
+                            pointerEvents: "none",
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.boxShadow =
-                              "0 0 0 2px rgba(37, 99, 235, 0.6)";
+                              o.type === "video"
+                                ? "0 0 0 3px rgba(255,255,255,0.7), inset 0 0 40px rgba(0,0,0,0.25)"
+                                : "0 0 0 3px rgba(37, 99, 235, 0.85)";
                             if (!thumb) {
                               e.currentTarget.style.background =
-                                "rgba(37, 99, 235, 0.08)";
+                                "rgba(37, 99, 235, 0.1)";
                             }
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.boxShadow =
-                              "0 0 0 2px rgba(37, 99, 235, 0)";
+                              o.type === "video"
+                                ? "0 0 0 2px rgba(255,255,255,0.35), inset 0 0 40px rgba(0,0,0,0.15)"
+                                : "0 0 0 2px rgba(37, 99, 235, 0.45)";
                             e.currentTarget.style.background = "transparent";
                           }}
                         />
@@ -497,77 +514,110 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                               top: "50%",
                               left: "50%",
                               transform: "translate(-50%, -50%)",
+                              pointerEvents: "none",
                             }}
                           >
                             <span style={{ marginLeft: 2, fontSize: 14 }}>▶</span>
                           </span>
                         )}
+                        {o.type !== "video" && (
+                          <span
+                            className="absolute flex items-center gap-1 bg-blue-600 text-white shadow-md"
+                            style={{
+                              top: "50%",
+                              left: "50%",
+                              transform: "translate(-50%, -50%)",
+                              padding: "3px 8px",
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              pointerEvents: "none",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            🔗 {o.label || "Link"}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
-                  {activeVideo && activeVideo.pageNum === pageNum && (
-                    <div
-                      className="absolute inset-0 bg-black flex items-center justify-center"
-                      style={{ zIndex: 20, width: "100%", height: "100%" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveVideo(null);
-                      }}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveVideo(null);
-                        }}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onTouchStart={(e) => e.stopPropagation()}
-                        className="absolute top-2 right-2 text-white text-2xl leading-none hover:text-gray-300"
-                        style={{ zIndex: 21 }}
-                        title="Close"
-                      >
-                        ✕
-                      </button>
-                      {(() => {
-                        const embed = getEmbedInfo(activeVideo.url);
-                        return embed.kind === "video" ? (
-                          <video
-                            src={embed.src}
-                            controls
-                            autoPlay
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "contain",
-                            }}
-                          />
-                        ) : (
-                          <iframe
-                            src={embed.src}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              width: "100%",
-                              height: "100%",
-                              border: 0,
-                            }}
-                            allow="autoplay; fullscreen; picture-in-picture"
-                            allowFullScreen
-                          />
-                        );
-                      })()}
-                    </div>
-                  )}
                 </div>
               );
             })}
           </HTMLFlipBook>
         </div>
       </div>
+
+      {activeVideo && (
+        <div
+          className="fixed inset-0 flex items-center justify-center p-4"
+          style={{ zIndex: 9999, background: "rgba(0,0,0,0.78)", backdropFilter: "blur(2px)" }}
+          onClick={() => setActiveVideo(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "relative",
+              width: "min(92vw, 760px)",
+              aspectRatio: "16 / 9",
+              background: "#000",
+              borderRadius: 14,
+              overflow: "hidden",
+              boxShadow: "0 24px 70px rgba(0,0,0,0.55)",
+            }}
+          >
+            <button
+              onClick={() => setActiveVideo(null)}
+              className="absolute flex items-center justify-center text-white hover:bg-black/80 transition"
+              style={{
+                top: 10,
+                right: 10,
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                background: "rgba(0,0,0,0.55)",
+                zIndex: 2,
+                border: "none",
+                cursor: "pointer",
+                fontSize: 16,
+              }}
+              title="Close"
+            >
+              ✕
+            </button>
+            {(() => {
+              const embed = getEmbedInfo(activeVideo.url);
+              return embed.kind === "video" ? (
+                <video
+                  src={embed.src}
+                  controls
+                  autoPlay
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              ) : (
+                <iframe
+                  src={embed.src}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    border: 0,
+                  }}
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                />
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 sm:gap-3 bg-white rounded-full shadow-xl px-3 sm:px-6 py-1.5 sm:py-2 border border-gray-100 max-w-[95vw] overflow-x-auto">
         <button
