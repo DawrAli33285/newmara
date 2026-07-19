@@ -59,18 +59,33 @@ export async function POST(req, { params }) {
 
     const modifiedPdfBytes = await pdfDoc.save()
     const urlParts = issue.pdfUrl.split('/publications/')
-    const storagePath = urlParts[1]
+    const oldStoragePath = urlParts[1]
+
+   
+    const pathWithoutExt = oldStoragePath.replace(/\.pdf$/i, '')
+    const newStoragePath = `${pathWithoutExt}-v${Date.now()}.pdf`
 
     const { error: uploadError } = await supabase.storage
       .from('publications')
-      .upload(storagePath, Buffer.from(modifiedPdfBytes), {
+      .upload(newStoragePath, Buffer.from(modifiedPdfBytes), {
         contentType: 'application/pdf',
-        upsert: true,
+        cacheControl: '3600',
+        upsert: false,
       })
 
     if (uploadError) {
       return NextResponse.json({ error: 'Failed to save updated PDF: ' + uploadError.message }, { status: 500 })
     }
+
+    const { data: newUrlData } = supabase.storage.from('publications').getPublicUrl(newStoragePath)
+    const newPdfUrl = newUrlData.publicUrl
+
+    await prisma.issue.update({
+      where: { id },
+      data: { pdfUrl: newPdfUrl },
+    })
+
+    supabase.storage.from('publications').remove([oldStoragePath]).catch(() => {})
 
     await prisma.pageOverlay.updateMany({
       where: {
@@ -87,6 +102,7 @@ export async function POST(req, { params }) {
       newPageNumber: insertIndex + 1, 
       insertedPageCount: uploadPageCount,
       totalPages: pdfDoc.getPageCount(),
+      pdfUrl: newPdfUrl,
     })
   } catch (err) {
     console.error(err)

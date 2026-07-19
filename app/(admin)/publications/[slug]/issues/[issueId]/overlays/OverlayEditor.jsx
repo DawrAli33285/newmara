@@ -11,7 +11,7 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
   const [pendingBox, setPendingBox] = useState(null) 
   const [form, setForm] = useState({ type: 'link', url: '', label: '' })
   const [saving, setSaving] = useState(false)
-  const [pdfVersion, setPdfVersion] = useState(0) 
+  const [currentPdfUrl, setCurrentPdfUrl] = useState(pdfUrl)
   const imgRef = useRef(null)
   const pdfDocRef = useRef(null)
   const [showInsertPanel, setShowInsertPanel] = useState(true)
@@ -23,13 +23,12 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
     async function init() {
       const pdfjsLib = await import('pdfjs-dist')
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
-      const bustUrl = pdfVersion === 0 ? pdfUrl : `${pdfUrl}${pdfUrl.includes('?') ? '&' : '?'}v=${pdfVersion}`
-      const pdf = await pdfjsLib.getDocument({ url: bustUrl }).promise
+      const pdf = await pdfjsLib.getDocument({ url: currentPdfUrl }).promise
       pdfDocRef.current = pdf
       setNumPages(pdf.numPages)
     }
     init()
-  }, [pdfUrl, pdfVersion])
+  }, [currentPdfUrl])
 
   useEffect(() => {
     async function renderPage() {
@@ -146,7 +145,7 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
 
       setShowInsertPanel(false)
       setInsertPdf(null)
-      setPdfVersion((v) => v + 1) 
+      if (data.pdfUrl) setCurrentPdfUrl(data.pdfUrl)
       setPageNumber(data.newPageNumber) 
       await fetchOverlays() 
     } catch (err) {
@@ -243,7 +242,7 @@ export default function OverlayEditor({ issueId, pdfUrl }) {
               disabled={inserting || !insertPdf}
               className="text-sm px-4 py-2 rounded-lg bg-[#1C3664] text-white hover:bg-blue-900 disabled:opacity-50 shrink-0"
             >
-              {inserting ? 'Merging…' : 'Add page'}
+              {inserting ? 'Merging…' : 'Add PDF'}
             </button>
           </div>
 

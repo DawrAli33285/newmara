@@ -17,8 +17,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
   const [dimensions, setDimensions] = useState({ width: 550, height: 778 });
   const [isMobile, setIsMobile] = useState(false);
   const [overlays, setOverlays] = useState([]);
-  const [activeVideo, setActiveVideo] = useState(null); 
-  const [vimeoThumbnails, setVimeoThumbnails] = useState({});
+  const [activeVideo, setActiveVideo] = useState(null);
   const flipBook = useRef(null);
   const containerRef = useRef(null);
   const pageViewTimeout = useRef(null);
@@ -131,24 +130,6 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
       .then(setOverlays)
       .catch(() => setOverlays([]));
   }, [issueId]);
-
-  useEffect(() => {
-    const vimeoOverlays = overlays.filter(
-      (o) => o.type === "video" && !o.thumbnail && /vimeo\.com/.test(o.url)
-    );
-    if (vimeoOverlays.length === 0) return;
-
-    vimeoOverlays.forEach((o) => {
-      fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(o.url)}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data && data.thumbnail_url) {
-            setVimeoThumbnails((prev) => ({ ...prev, [o.url]: data.thumbnail_url }));
-          }
-        })
-        .catch(() => {});
-    });
-  }, [overlays]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -279,19 +260,26 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
 
     return { kind: "iframe", src: url };
   }
-  function getOverlayThumbnail(o) {
-    if (o.thumbnail) return { type: "image", src: o.thumbnail };
+
+
+  function getOverlayEmbedPreview(o) {
     if (o.type !== "video") return null;
 
     const ytId = getYouTubeId(o.url);
-    if (ytId) return { type: "image", src: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` };
+    if (ytId)
+      return {
+        kind: "iframe",
+        src: `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&controls=0&modestbranding=1&playsinline=1`,
+      };
 
-    if (/vimeo\.com/.test(o.url)) {
-      const src = vimeoThumbnails[o.url];
-      return src ? { type: "image", src } : null;
-    }
+    const vimeo = o.url.match(/vimeo\.com\/(\d+)/);
+    if (vimeo)
+      return {
+        kind: "iframe",
+        src: `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&muted=1&loop=1&background=1`,
+      };
 
-    if (/\.mp4($|\?)/.test(o.url)) return { type: "video", src: o.url };
+    if (/\.mp4($|\?)/.test(o.url)) return { kind: "video", src: o.url };
 
     return null;
   }
@@ -411,7 +399,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                     }}
                   />
                   {pageOverlays.map((o) => {
-                    const thumb = getOverlayThumbnail(o);
+                    const embed = getOverlayEmbedPreview(o);
                     return (
                       <button
                         key={o.id}
@@ -430,54 +418,81 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                           (o.type === "video" ? "Watch video" : "Open link")
                         }
                         className="group"
-                        style={{
-                          position: "absolute",
-                          left: 0,
-                          top: `${o.y * 100}%`,
-                          width: "100%",
-                          height:
-                            o.type === "video"
-                              ? `max(${o.height * 100}%, 300px)`
-                              : `${o.height * 100}%`,
-                          cursor: "pointer",
-                          background: "transparent",
-                          border: "none",
-                          padding: 0,
-                          zIndex: 5,
-                          overflow: "hidden",
-                          borderRadius: 4,
-                        }}
+                        style={
+                          o.type === "video"
+                            ? {
+                                position: "absolute",
+                                left: `${o.x * 100}%`,
+                                top: `${o.y * 100}%`,
+                                width: 265,
+                                aspectRatio: "16 / 9",
+                                cursor: "pointer",
+                                background: "#000",
+                                border: "none",
+                                padding: 0,
+                                zIndex: 5,
+                                overflow: "hidden",
+                                borderRadius: 8,
+                              }
+                            : {
+                                position: "absolute",
+                                left: 0,
+                                top: `${o.y * 100}%`,
+                                width: "100%",
+                                height: `${o.height * 100}%`,
+                                cursor: "pointer",
+                                background: "transparent",
+                                border: "none",
+                                padding: 0,
+                                zIndex: 5,
+                                overflow: "hidden",
+                                borderRadius: 4,
+                              }
+                        }
                       >
-                        {thumb &&
-                          (thumb.type === "image" ? (
-                            <img
-                              src={thumb.src}
-                              alt=""
+                        {o.type === "video" && embed && (
+                          <>
+                            {embed.kind === "video" ? (
+                              <video
+                                src={embed.src}
+                                muted
+                                autoPlay
+                                loop
+                                playsInline
+                                style={{
+                                  position: "absolute",
+                                  inset: 0,
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  pointerEvents: "none",
+                                }}
+                              />
+                            ) : (
+                              <iframe
+                                src={embed.src}
+                                style={{
+                                  position: "absolute",
+                                  inset: 0,
+                                  width: "100%",
+                                  height: "100%",
+                                  border: 0,
+                                  pointerEvents: "none",
+                                }}
+                                allow="autoplay; muted; encrypted-media"
+                                tabIndex={-1}
+                              />
+                            )}
+                 
+                            <span
                               style={{
                                 position: "absolute",
                                 inset: 0,
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                                pointerEvents: "none",
+                                zIndex: 1,
                               }}
                             />
-                          ) : (
-                            <video
-                              src={thumb.src}
-                              muted
-                              preload="metadata"
-                              playsInline
-                              style={{
-                                position: "absolute",
-                                inset: 0,
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                                pointerEvents: "none",
-                              }}
-                            />
-                          ))}
+                          </>
+                        )}
                         <span
                           className="absolute inset-0 rounded transition"
                           style={{
@@ -486,13 +501,14 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                                 ? "0 0 0 2px rgba(255,255,255,0.35), inset 0 0 40px rgba(0,0,0,0.15)"
                                 : "0 0 0 2px rgba(37, 99, 235, 0.45)",
                             pointerEvents: "none",
+                            zIndex: 2,
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.boxShadow =
                               o.type === "video"
                                 ? "0 0 0 3px rgba(255,255,255,0.7), inset 0 0 40px rgba(0,0,0,0.25)"
                                 : "0 0 0 3px rgba(37, 99, 235, 0.85)";
-                            if (!thumb) {
+                            if (o.type !== "video") {
                               e.currentTarget.style.background =
                                 "rgba(37, 99, 235, 0.1)";
                             }
@@ -515,6 +531,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                               left: "50%",
                               transform: "translate(-50%, -50%)",
                               pointerEvents: "none",
+                              zIndex: 2,
                             }}
                           >
                             <span style={{ marginLeft: 2, fontSize: 14 }}>▶</span>
@@ -533,6 +550,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
                               fontWeight: 600,
                               pointerEvents: "none",
                               whiteSpace: "nowrap",
+                              zIndex: 2,
                             }}
                           >
                             🔗 {o.label || "Link"}
