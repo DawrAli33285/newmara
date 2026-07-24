@@ -14,7 +14,7 @@ export default function Navbar() {
   const pathname = usePathname()
   const navLinks = [
     { label: 'Publications', href: '/browse' },
-    { label: 'Advertise',    href: '/advertise' },
+    // { label: 'Advertise',    href: '/advertise' },
     { label: 'About',        href: '/about' },
   ]
 
