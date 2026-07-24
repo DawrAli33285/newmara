@@ -56,13 +56,13 @@ export default function HeroSection() {
               </Link>
             </div>
           </div>
-          <div className="hidden lg:flex items-center justify-center py-8">
+          <div className="hidden lg:flex items-center justify-end  w-full  justify-center py-8">
             <Image
               src={logo}
               alt="Mara Media"
               width={1000}
               height={1000}
-              className="w-full h-auto object-contain drop-shadow-2xl"
+              className="w-[400px] max-w-[400px] h-auto object-contain drop-shadow-2xl"
               priority
             />
           </div>
