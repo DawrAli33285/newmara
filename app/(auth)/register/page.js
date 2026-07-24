@@ -50,7 +50,7 @@ export default function RegisterPage() {
         className="rounded-2xl border bg-white p-8"
         style={{ borderColor: '#D9E0E7', boxShadow: '0 20px 40px -24px rgba(8, 27, 49, 0.25)' }}
       >
-        {/* Logo */}
+       
         <div className="mb-8 text-center">
           <Link
             href="/"
@@ -64,7 +64,7 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Error */}
+      
         {error && (
           <div
             className="mb-5 rounded-xl border p-3 text-sm"

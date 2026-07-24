@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// GET /api/admin/issues/[id]/overlays — list all overlays for an issue
 export async function GET(req, { params }) {
   const { id } = await params
   const overlays = await prisma.pageOverlay.findMany({
@@ -11,7 +10,7 @@ export async function GET(req, { params }) {
   return NextResponse.json(overlays)
 }
 
-// POST /api/admin/issues/[id]/overlays — create a new overlay
+
 export async function POST(req, { params }) {
   const { id } = await params
   const body = await req.json()

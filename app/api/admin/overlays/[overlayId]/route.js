@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// PATCH /api/admin/overlays/[overlayId] — update an overlay
+
 export async function PATCH(req, { params }) {
   const { overlayId } = await params
   const body = await req.json()
@@ -25,7 +25,7 @@ export async function PATCH(req, { params }) {
   }
 }
 
-// DELETE /api/admin/overlays/[overlayId] — remove an overlay
+
 export async function DELETE(req, { params }) {
   const { overlayId } = await params
   try {

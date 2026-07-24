@@ -38,7 +38,7 @@ export async function PATCH(req, { params }) {
         const currentPrice = await stripe.prices.retrieve(existing.stripePriceId)
         const productId = currentPrice.product
 
-        // Only touch Stripe if the amount actually changed
+
         const newAmount = Math.round(price * 100)
         if (currentPrice.unit_amount !== newAmount) {
           const newPrice = await stripe.prices.create({
@@ -51,7 +51,7 @@ export async function PATCH(req, { params }) {
           data.stripePriceId = newPrice.id
         }
       } else {
-        // No existing Stripe product/price — create one now
+
         const product = await stripe.products.create({
           name: data.title || existing.title,
           description: data.description ?? existing.description ?? undefined,
