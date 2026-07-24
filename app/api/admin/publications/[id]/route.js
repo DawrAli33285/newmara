@@ -82,6 +82,26 @@ export async function DELETE(req, { params }) {
   try {
     const { id } = await params
 
+    const subscriptions = await prisma.subscription.findMany({
+      where: { publicationId: id },
+      select: { stripeSubscriptionId: true },
+    })
+
+    const results = await Promise.allSettled(
+      subscriptions
+        .filter((sub) => sub.stripeSubscriptionId)
+        .map((sub) => stripe.subscriptions.cancel(sub.stripeSubscriptionId))
+    )
+
+    const failed = results.filter((r) => r.status === 'rejected')
+    if (failed.length > 0) {
+      failed.forEach((r) => console.error('Stripe cancel failed:', r.reason))
+      return NextResponse.json(
+        { error: 'Failed to cancel one or more subscriptions', details: failed.map(f => f.reason?.message) },
+        { status: 500 }
+      )
+    }
+
     await prisma.$transaction([
       prisma.subscription.deleteMany({ where: { publicationId: id } }),
       prisma.issueView.deleteMany({ where: { issue: { publicationId: id } } }),
