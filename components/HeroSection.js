@@ -47,7 +47,7 @@ export default function HeroSection() {
 
             <div>
               <Link
-                href="/publications"
+                href="/browse"
                 className="inline-flex items-center gap-2.5 px-7 py-3 rounded-lg text-[16px] font-semibold text-white bg-[#2F7D1B] min-h-[44px] hover:bg-[#266615] hover:-translate-y-0.5 transition-all duration-200 shadow-md"
               >
                 Browse Publications
