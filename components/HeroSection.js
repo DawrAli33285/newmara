@@ -1,5 +1,6 @@
 import Link from "next/link";
-
+import Image from "next/image";
+import logo from "../public/tablet.png";
 function ArrowRight() {
   return (
     <svg
@@ -22,7 +23,7 @@ export default function HeroSection() {
     <section
       className="
         w-full relative overflow-hidden
-        bg-[url('/images/hero-bg.jpg')] bg-cover bg-center
+        bg-[url('../public/banner.png')] bg-cover bg-center
         min-h-[480px] lg:min-h-[540px]
       "
     >
@@ -56,10 +57,13 @@ export default function HeroSection() {
             </div>
           </div>
           <div className="hidden lg:flex items-center justify-center py-8">
-            <img
-              src="/images/hero-devices.png"
-              alt="Tablet and phone showing Mara Media publications"
-              className="w-full max-w-[520px] h-auto object-contain drop-shadow-2xl"
+            <Image
+              src={logo}
+              alt="Mara Media"
+              width={1000}
+              height={1000}
+              className="w-full h-auto object-contain drop-shadow-2xl"
+              priority
             />
           </div>
         </div>
