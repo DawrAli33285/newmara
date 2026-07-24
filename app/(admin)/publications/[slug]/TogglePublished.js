@@ -7,6 +7,7 @@ export default function TogglePublished({ issueId, isPublished }) {
   const [loading, setLoading] = useState(false)
 
   async function toggle() {
+    console.log(issueId)
     setLoading(true)
     await fetch(`/api/admin/issues/${issueId}`, {
       method: 'PATCH',

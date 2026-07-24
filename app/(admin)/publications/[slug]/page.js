@@ -12,6 +12,7 @@ export default async function PublicationDetailPage({ params }) {
     include: { issues: { orderBy: { issueNumber: "desc" } } },
   });
 
+  console.log(publication)
   if (!publication) return notFound();
 
   return (
