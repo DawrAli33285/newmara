@@ -3,30 +3,35 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
-const styleMap = {
-  'the-skipper':  { color: 'from-blue-900 to-blue-700',       emoji: '⚓',  issues: '12 issues/monthly' },
-  'take-off':     { color: 'from-sky-800 to-sky-600',         emoji: '✈️',  issues: 'Annual' },
-  'go-west':      { color: 'from-emerald-800 to-emerald-600', emoji: '🌿', issues: 'Annual' },
-  'the-business': { color: 'from-slate-800 to-slate-600',     emoji: '📈', issues: 'Annual' },
-  'due-south':    { color: 'from-amber-800 to-amber-600',     emoji: '🧭', issues: 'Annual' },
+const pubMeta = {
+  'the-skipper':  { frequency: 'Monthly', titleLine1: '— The —', titleLine2: 'Skipper',   year: 'May 2024' },
+  'take-off':     { frequency: 'Annual',  titleLine1: null,       titleLine2: 'Take Off',  year: '2024' },
+  'go-west':      { frequency: 'Annual',  titleLine1: null,       titleLine2: 'Go West',   year: '2024' },
+  'due-south':    { frequency: 'Annual',  titleLine1: null,       titleLine2: 'Due South', year: '2024' },
+  'the-business': { frequency: 'Annual',  titleLine1: 'The',      titleLine2: 'Business',  year: '2024' },
 }
 
-const fallbackColors = [
-  'from-blue-900 to-blue-700',
-  'from-purple-900 to-purple-700',
-  'from-green-900 to-green-700',
-  'from-red-900 to-red-700',
-  'from-orange-900 to-orange-700',
-]
+function ArrowRight() {
+  return (
+    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2}
+      strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  )
+}
 
-export default async function PublicationsGrid() {
+export default async function PublicationsGrid({
+  heading = 'Browse Our Publications',
+  subheading = null,
+  bgClassName = 'bg-white',
+}) {
   const session = await getServerSession(authOptions)
 
   const publications = await prisma.publication.findMany({
     where: { isPublished: true },
     orderBy: { title: 'asc' },
   })
-
   let subscribedIds = new Set()
   if (session?.user?.email) {
     const user = await prisma.user.findUnique({ where: { email: session.user.email } })
@@ -35,75 +40,120 @@ export default async function PublicationsGrid() {
         where: { userId: user.id, status: 'active' },
         select: { publicationId: true },
       })
-      subscribedIds = new Set(subs.map(s => s.publicationId))
+      subscribedIds = new Set(subs.map((s) => s.publicationId))
     }
   }
 
   return (
-    <section id="publications" className="py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6">
+    <section className={bgClassName}>
+      <div className="max-w-360 mx-auto px-6 py-16">
 
-        <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-blue-600 uppercase tracking-widest mb-3">Our Publications</p>
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Five magazines. One platform.</h2>
-          <p className="text-lg text-gray-500 max-w-xl mx-auto">
-            Subscribe to the publication you love and get instant access to every issue — past and present.
-          </p>
+        <div className="text-center mb-10">
+          <h2 className="text-[26px] md:text-[32px] lg:text-[36px] font-bold tracking-tight text-[#0B1830] mb-3">
+            {heading}
+          </h2>
+          {subheading && (
+            <p className="text-[15px] md:text-[16px] text-[#657084] max-w-xl mx-auto mb-3">
+              {subheading}
+            </p>
+          )}
+          <div className="w-10 h-1 rounded-full mx-auto bg-[#2F7D1B]" />
         </div>
 
         {publications.length === 0 ? (
-          <p className="text-center text-gray-400">No publications available yet.</p>
+          <p className="text-center text-[16px] text-[#657084]">
+            No publications available yet.
+          </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {publications.map((pub, i) => {
-              const style = styleMap[pub.slug] || {
-                color: fallbackColors[i % fallbackColors.length],
-                emoji: '📖',
-                issues: 'Regular',
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {publications.map((pub) => {
+              const meta = pubMeta[pub.slug] ?? {
+                frequency: 'Annual',
+                titleLine1: null,
+                titleLine2: pub.title,
+                year: '2024',
               }
               const isSubscribed = subscribedIds.has(pub.id)
 
               return (
                 <div
                   key={pub.slug}
-                  className="group relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                  className="group flex flex-col rounded-2xl overflow-hidden border border-[#D9E0E7] bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
                 >
-                  {pub.coverImageUrl ? (
-                    <img
-                      src={pub.coverImageUrl}
-                      alt={pub.title}
-                      className="h-56 w-full object-cover"
-                    />
-                  ) : (
-                    <div className={`bg-gradient-to-br ${style.color} h-56 flex items-center justify-center`}>
-                      <span className="text-6xl">{style.emoji}</span>
-                    </div>
-                  )}
+                  <div className="relative overflow-hidden flex-shrink-0 aspect-[4/3] bg-[#0B2A4A]">
+                    {pub.coverImageUrl && (
+                      <img
+                        src={pub.coverImageUrl}
+                        alt={`${pub.title} cover`}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    )}
 
-                  <div className="bg-white p-5">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-lg font-bold text-gray-900">{pub.title}</h3>
-                      <span className="text-xs bg-blue-50 text-blue-600 font-medium px-2 py-1 rounded-full whitespace-nowrap">
-                        {style.issues}
-                      </span>
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/10 to-transparent" />
+
+                    <div className="absolute top-3 left-3 text-white">
+                      {meta.titleLine1 && (
+                        <p className="text-[11px] font-light opacity-90 tracking-[0.05em] mb-0.5">
+                          {meta.titleLine1}
+                        </p>
+                      )}
+                      <p className="text-[22px] font-bold leading-tight tracking-tight">
+                        {meta.titleLine2}
+                      </p>
+                      <p className="text-[11px] opacity-70 mt-0.5">{meta.year}</p>
                     </div>
+
+                    {isSubscribed && (
+                      <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wide bg-[#2F7D1B] text-white px-2 py-1 rounded-full">
+                        Subscribed
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col flex-1 p-4">
+                    <p className="text-[16px] font-bold text-[#0B1830] leading-snug mb-1">
+                      {pub.title}
+                    </p>
+
+                    <p className="text-[14px] font-semibold text-[#2F7D1B] mb-3">
+                      {meta.frequency}
+                    </p>
+
                     {pub.description && (
-                      <p className="text-sm text-gray-500 mt-2 leading-relaxed">{pub.description}</p>
+                      <p className="text-[14px] text-[#657084] leading-relaxed flex-1 mb-4">
+                        {pub.description}
+                      </p>
                     )}
 
                     {isSubscribed ? (
                       <Link
                         href={`/read/${pub.slug}`}
-                        className="mt-4 inline-block text-sm font-semibold text-green-600 hover:text-green-800 transition-colors"
+                        className="
+                          flex items-center justify-center gap-[20px] w-full
+                          min-h-[44px] px-4 py-2.5 rounded-lg
+                          text-[15px] font-medium
+                          bg-[#2F7D1B] text-white
+                          hover:bg-[#256315]
+                          transition-all duration-200
+                        "
                       >
-                        ✓ Read Now →
+                        Read Now
+                        <ArrowRight />
                       </Link>
                     ) : (
                       <Link
                         href={`/subscribe/${pub.slug}`}
-                        className="mt-4 inline-block text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                        className="
+                          flex items-center justify-center gap-[20px] w-full
+                          min-h-[44px] px-4 py-2.5 rounded-lg
+                          text-[15px] font-medium
+                          border border-[#2F7D1B] text-[#2F7D1B]
+                          hover:bg-[#2F7D1B] hover:text-white
+                          transition-all duration-200
+                        "
                       >
-                        Subscribe →
+                        Subscribe
+                        <ArrowRight />
                       </Link>
                     )}
                   </div>

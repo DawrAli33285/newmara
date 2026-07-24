@@ -1,7 +1,12 @@
 export default function AuthLayout({ children }) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f1f3d] via-[#1a3460] to-[#0d3b72] flex items-center justify-center px-4">
-        {children}
-      </div>
-    )
-  }
+  return (
+    <div
+      className="flex min-h-screen items-center justify-center px-4"
+      style={{
+        background: "linear-gradient(135deg, #081B31 0%, #0B1830 50%, #12294a 100%)",
+      }}
+    >
+      {children}
+    </div>
+  )
+}

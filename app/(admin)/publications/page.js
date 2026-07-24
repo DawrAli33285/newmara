@@ -1,7 +1,25 @@
 import { prisma } from '@/lib/prisma'
+import { stripe } from '@/lib/stripe'
 import Link from 'next/link'
 import PublishToggle from './PublishToggle'
 import DeletePublicationButton from './DeletePublicationButton'
+import EditPublicationButton from './EditPublicationButton'
+
+async function withLivePrice(pub) {
+  if (!pub.stripePriceId) return { ...pub, priceEuros: null, priceLabel: 'No price set' }
+  try {
+    const price = await stripe.prices.retrieve(pub.stripePriceId)
+    const euros = (price.unit_amount / 100).toFixed(2)
+    const interval = price.recurring?.interval || 'month'
+    return {
+      ...pub,
+      priceEuros: euros,
+      priceLabel: `€${euros} / ${interval}`,
+    }
+  } catch {
+    return { ...pub, priceEuros: null, priceLabel: 'Price unavailable' }
+  }
+}
 
 export default async function PublicationsPage() {
   const publications = await prisma.publication.findMany({
@@ -9,39 +27,87 @@ export default async function PublicationsPage() {
     orderBy: { title: 'asc' },
   })
 
+  const withPrices = await Promise.all(publications.map(withLivePrice))
+
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Publications</h1>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: '#0B1830' }}>
+            Publications
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: '#657084' }}>
+            {publications.length} publication{publications.length !== 1 ? 's' : ''}
+          </p>
+        </div>
         <Link
           href="/publications/create"
-          className="bg-[#1C3664] text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-900"
+          className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          style={{ backgroundColor: '#2F7D1B' }}
         >
           + Create Publication
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {publications.map((pub) => (
-          <div key={pub.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {withPrices.map((pub) => (
+          <div
+            key={pub.id}
+            className="overflow-hidden rounded-2xl border bg-white transition hover:shadow-md"
+            style={{ borderColor: '#D9E0E7' }}
+          >
             {pub.coverImageUrl ? (
-              <img src={pub.coverImageUrl} alt={pub.title} className="w-full h-48 object-cover" />
+              <img
+                src={pub.coverImageUrl}
+                alt={pub.title}
+                className="h-48 w-full object-cover"
+              />
             ) : (
-              <div className="w-full h-48 bg-[#1C3664] flex items-center justify-center">
-                <span className="text-white text-xl font-bold text-center px-4">{pub.title}</span>
+              <div
+                className="flex h-48 w-full items-center justify-center"
+                style={{ backgroundColor: '#0B1830' }}
+              >
+                <span className="px-4 text-center text-xl font-bold text-white">
+                  {pub.title}
+                </span>
               </div>
             )}
-            <div className="p-4">
-              <h2 className="font-semibold text-gray-900">{pub.title}</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {pub._count.issues} issue{pub._count.issues !== 1 ? 's' : ''}
-              </p>
+
+            <div className="p-5">
+              <div className="mb-1 flex items-start justify-between gap-2">
+                <h2 className="text-base font-bold" style={{ color: '#0B1830' }}>
+                  {pub.title}
+                </h2>
+                <span
+                  className="whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold"
+                  style={{
+                    backgroundColor: pub.isPublished ? '#EFF5EE' : '#F7F8FA',
+                    color: pub.isPublished ? '#2F7D1B' : '#657084',
+                  }}
+                >
+                  {pub.isPublished ? 'Published' : 'Draft'}
+                </span>
+              </div>
+
+              <div className="mb-3 flex items-center gap-3 text-sm" style={{ color: '#657084' }}>
+                <span>
+                  {pub._count.issues} issue{pub._count.issues !== 1 ? 's' : ''}
+                </span>
+                <span aria-hidden="true">·</span>
+                <span className="font-semibold" style={{ color: '#0B1830' }}>
+                  {pub.priceLabel}
+                </span>
+              </div>
+
               <Link
                 href={`/publications/${pub.slug}`}
-                className="mt-3 block text-center bg-gray-100 text-gray-700 text-sm py-2 rounded-lg hover:bg-gray-200"
+                className="block rounded-lg py-2 text-center text-sm font-medium transition hover:bg-gray-100"
+                style={{ backgroundColor: '#F7F8FA', color: '#0B1830' }}
               >
                 View Issues
               </Link>
+
+              <EditPublicationButton publication={pub} />
               <PublishToggle id={pub.id} isPublished={pub.isPublished} />
               <DeletePublicationButton id={pub.id} title={pub.title} />
             </div>

@@ -53,33 +53,62 @@ function ResetPasswordForm() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-white rounded-2xl shadow-2xl p-8">
-        <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-[#1a3460]">Mara Media</Link>
-          <p className="text-gray-500 text-sm mt-2">Set a new password</p>
+      <div
+        className="rounded-2xl border bg-white p-8"
+        style={{ borderColor: '#D9E0E7', boxShadow: '0 20px 40px -24px rgba(8, 27, 49, 0.25)' }}
+      >
+        <div className="mb-8 text-center">
+          <Link
+            href="/"
+            className="text-2xl font-bold transition hover:opacity-80"
+            style={{ color: '#0B1830' }}
+          >
+            Mara Media
+          </Link>
+          <p className="mt-2 text-sm" style={{ color: '#657084' }}>
+            Set a new password
+          </p>
         </div>
 
         {done ? (
-          <div className="text-center py-4">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="py-4 text-center">
+            <div
+              className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+              style={{ backgroundColor: '#EFF5EE' }}
+            >
+              <svg
+                className="h-8 w-8"
+                style={{ color: '#2F7D1B' }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Password updated!</h3>
-            <p className="text-sm text-gray-500">Redirecting you to login...</p>
+            <h3 className="mb-2 text-lg font-bold" style={{ color: '#0B1830' }}>
+              Password updated!
+            </h3>
+            <p className="text-sm" style={{ color: '#657084' }}>
+              Redirecting you to login...
+            </p>
           </div>
         ) : (
           <>
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+              <div
+                className="mb-5 rounded-xl border p-3 text-sm"
+                style={{ backgroundColor: '#FBEAE9', borderColor: '#F3C9C6', color: '#B3261E' }}
+              >
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
+                <label className="mb-1.5 block text-sm font-semibold" style={{ color: '#0B1830' }}>
+                  New password
+                </label>
                 <input
                   type="password"
                   value={password}
@@ -87,12 +116,15 @@ function ResetPasswordForm() {
                   required
                   disabled={!token}
                   placeholder="Min. 8 characters"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50"
+                  className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition focus:ring-2 disabled:opacity-50"
+                  style={{ borderColor: '#D9E0E7', color: '#0B1830', minHeight: 44 }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
+                <label className="mb-1.5 block text-sm font-semibold" style={{ color: '#0B1830' }}>
+                  Confirm new password
+                </label>
                 <input
                   type="password"
                   value={confirm}
@@ -100,14 +132,16 @@ function ResetPasswordForm() {
                   required
                   disabled={!token}
                   placeholder="Repeat your password"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50"
+                  className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition focus:ring-2 disabled:opacity-50"
+                  style={{ borderColor: '#D9E0E7', color: '#0B1830', minHeight: 44 }}
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading || !token}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors text-sm"
+                className="w-full rounded-xl py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: '#2F7D1B', minHeight: 44 }}
               >
                 {loading ? 'Updating...' : 'Update password'}
               </button>
@@ -115,9 +149,15 @@ function ResetPasswordForm() {
           </>
         )}
 
-        <div className="my-6 border-t border-gray-100" />
-        <p className="text-center text-sm text-gray-500">
-          <Link href="/login" className="text-blue-600 font-semibold hover:text-blue-800">Back to login</Link>
+        <div className="my-6 h-px w-full" style={{ backgroundColor: '#D9E0E7' }} />
+        <p className="text-center text-sm" style={{ color: '#657084' }}>
+          <Link
+            href="/login"
+            className="font-semibold transition hover:opacity-80"
+            style={{ color: '#2F7D1B' }}
+          >
+            Back to login
+          </Link>
         </p>
       </div>
     </div>

@@ -46,80 +46,108 @@ export default function RegisterPage() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-white rounded-2xl shadow-2xl p-8">
+      <div
+        className="rounded-2xl border bg-white p-8"
+        style={{ borderColor: '#D9E0E7', boxShadow: '0 20px 40px -24px rgba(8, 27, 49, 0.25)' }}
+      >
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-[#1a3460]">
+        <div className="mb-8 text-center">
+          <Link
+            href="/"
+            className="text-2xl font-bold transition hover:opacity-80"
+            style={{ color: '#0B1830' }}
+          >
             Mara Media
           </Link>
-          <p className="text-gray-500 text-sm mt-2">Create your reader account</p>
+          <p className="mt-2 text-sm" style={{ color: '#657084' }}>
+            Create your reader account
+          </p>
         </div>
 
         {/* Error */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+          <div
+            className="mb-5 rounded-xl border p-3 text-sm"
+            style={{ backgroundColor: '#FBEAE9', borderColor: '#F3C9C6', color: '#B3261E' }}
+          >
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+            <label className="mb-1.5 block text-sm font-semibold" style={{ color: '#0B1830' }}>
+              Email address
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="you@example.com"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition focus:ring-2"
+              style={{ borderColor: '#D9E0E7', color: '#0B1830', minHeight: 44 }}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="mb-1.5 block text-sm font-semibold" style={{ color: '#0B1830' }}>
+              Password
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="Min. 8 characters"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition focus:ring-2"
+              style={{ borderColor: '#D9E0E7', color: '#0B1830', minHeight: 44 }}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
+            <label className="mb-1.5 block text-sm font-semibold" style={{ color: '#0B1830' }}>
+              Confirm password
+            </label>
             <input
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               required
               placeholder="Repeat your password"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition focus:ring-2"
+              style={{ borderColor: '#D9E0E7', color: '#0B1830', minHeight: 44 }}
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors text-sm"
+            className="w-full rounded-xl py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            style={{ backgroundColor: '#2F7D1B', minHeight: 44 }}
           >
             {loading ? 'Creating account...' : 'Create account'}
           </button>
         </form>
 
-        <div className="my-6 border-t border-gray-100" />
+        <div className="my-6 h-px w-full" style={{ backgroundColor: '#D9E0E7' }} />
 
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm" style={{ color: '#657084' }}>
           Already have an account?{' '}
-          <Link href="/login" className="text-blue-600 font-semibold hover:text-blue-800">
+          <Link
+            href="/login"
+            className="font-semibold transition hover:opacity-80"
+            style={{ color: '#2F7D1B' }}
+          >
             Sign in
           </Link>
         </p>
       </div>
 
-      <p className="text-center mt-6 text-sm text-blue-200">
-        <Link href="/" className="hover:text-white transition-colors">← Back to Mara Media</Link>
+      <p className="mt-6 text-center text-sm" style={{ color: '#657084' }}>
+        <Link href="/" className="transition hover:opacity-80" style={{ color: '#0B1830' }}>
+          ← Back to Mara Media
+        </Link>
       </p>
     </div>
   )

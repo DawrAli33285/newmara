@@ -35,28 +35,48 @@ export default function CreatePublicationPage() {
 
   return (
     <div className="p-8 max-w-2xl">
-      <Link href="/publications" className="text-sm text-blue-600 hover:underline">
+      <Link
+        href="/publications"
+        className="text-sm font-semibold transition hover:opacity-80"
+        style={{ color: '#2F7D1B' }}
+      >
         ← Back to Publications
       </Link>
-      <h1 className="text-2xl font-bold text-gray-900 mt-2 mb-6">Create Publication</h1>
+      <h1 className="text-2xl font-bold mt-2 mb-6" style={{ color: '#0B1830' }}>
+        Create Publication
+      </h1>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-2xl border bg-white p-6 space-y-5"
+        style={{ borderColor: '#D9E0E7' }}
+      >
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
+          <label className="mb-1.5 block text-sm font-semibold" style={{ color: '#0B1830' }}>
+            Title <span style={{ color: '#B3261E' }}>*</span>
+          </label>
           <input
             type="text"
             required
             value={form.title}
             onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition focus:ring-2"
+            style={{ borderColor: '#D9E0E7', color: '#0B1830' }}
             placeholder="e.g. The Skipper"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Price (€) <span className="text-red-500">*</span></label>
+          <label className="mb-1.5 block text-sm font-semibold" style={{ color: '#0B1830' }}>
+            Price (€) <span style={{ color: '#B3261E' }}>*</span>
+          </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">€</span>
+            <span
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm"
+              style={{ color: '#657084' }}
+            >
+              €
+            </span>
             <input
               type="number"
               required
@@ -64,30 +84,37 @@ export default function CreatePublicationPage() {
               step="0.01"
               value={form.price}
               onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm"
+              className="w-full rounded-xl border py-2.5 pl-7 pr-3.5 text-sm outline-none transition focus:ring-2"
+              style={{ borderColor: '#D9E0E7', color: '#0B1830' }}
               placeholder="9.99"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <label className="mb-1.5 block text-sm font-semibold" style={{ color: '#0B1830' }}>
+            Description
+          </label>
           <textarea
             value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition focus:ring-2"
+            style={{ borderColor: '#D9E0E7', color: '#0B1830' }}
             rows={3}
             placeholder="Short description of this publication..."
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Cover Image <span className="text-gray-400 font-normal">(optional)</span></label>
+          <label className="mb-1.5 block text-sm font-semibold" style={{ color: '#0B1830' }}>
+            Cover Image <span className="font-normal" style={{ color: '#657084' }}>(optional)</span>
+          </label>
           <input
             type="file"
             accept="image/*"
             onChange={e => setCoverFile(e.target.files[0])}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition"
+            style={{ borderColor: '#D9E0E7', color: '#0B1830' }}
           />
         </div>
 
@@ -97,19 +124,28 @@ export default function CreatePublicationPage() {
             id="isPublished"
             checked={form.isPublished}
             onChange={e => setForm(f => ({ ...f, isPublished: e.target.checked }))}
-            className="w-4 h-4 rounded border-gray-300 text-blue-600"
+            className="h-4 w-4 rounded"
+            style={{ accentColor: '#2F7D1B' }}
           />
-          <label htmlFor="isPublished" className="text-sm font-medium text-gray-700">
+          <label htmlFor="isPublished" className="text-sm font-semibold" style={{ color: '#0B1830' }}>
             Publish immediately
           </label>
         </div>
 
-        {error && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+        {error && (
+          <p
+            className="rounded-xl px-3.5 py-2.5 text-sm"
+            style={{ backgroundColor: '#FBEAE9', color: '#B3261E' }}
+          >
+            {error}
+          </p>
+        )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#1C3664] text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-900 disabled:opacity-50"
+          className="w-full rounded-xl py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: '#2F7D1B' }}
         >
           {loading ? 'Creating...' : 'Create Publication'}
         </button>

@@ -27,9 +27,14 @@ export default function SubscribeButton({ publicationId, slug }) {
     <button
       onClick={handleSubscribe}
       disabled={loading}
-      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
+      className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-base font-semibold text-white transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+      style={{ backgroundColor: '#2F7D1B', minHeight: 44 }}
     >
-      {loading ? 'Redirecting to payment...' : 'Subscribe Now'}
+      {loading ? 'Redirecting to payment...' : (
+        <>
+          Subscribe Now <span aria-hidden="true">→</span>
+        </>
+      )}
     </button>
   )
 }

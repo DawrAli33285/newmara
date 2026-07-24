@@ -17,9 +17,12 @@ export default function PublishToggle({ id, isPublished: initial }) {
   return (
     <button
       onClick={toggle}
-      className={`mt-2 w-full text-sm py-2 rounded-lg transition-colors ${
-        isPublished ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'
-      }`}
+      className="mt-2 w-full rounded-lg py-2 text-sm font-medium transition"
+      style={
+        isPublished
+          ? { backgroundColor: '#FBEAE9', color: '#B3261E' }
+          : { backgroundColor: '#EFF5EE', color: '#2F7D1B' }
+      }
     >
       {isPublished ? 'Unpublish' : 'Publish'}
     </button>

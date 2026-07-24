@@ -1,45 +1,101 @@
 import Link from 'next/link'
+import logo from '../public/logo.png'
+import Image from 'next/image'
 
 export default function Footer() {
   return (
-    <footer className="bg-[#0f1f3d] text-white">
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
-
+    <footer style={{ backgroundColor: '#2F7D1B', color: '#FFFFFF' }}>
+      <div className="max-w-360 mx-auto px-6 py-16">
+        <div className="mb-12 grid grid-cols-1 gap-10 md:grid-cols-4">
           <div className="md:col-span-2">
-            <h3 className="text-xl font-bold mb-3">Mara Media</h3>
-            <p className="text-blue-300 text-sm leading-relaxed max-w-xs">
+            <div className="mb-3 flex items-center gap-3">
+              <div
+                className="flex items-center justify-center rounded-lg bg-white p-1.5"
+              >
+                <Image
+                  src={logo}
+                  alt="Mara Media"
+                  width={100}
+                  height={100}
+                  className="rounded-md"
+                  priority
+                />
+              </div>
+              <h3 className="text-lg font-bold">Mara Media</h3>
+            </div>
+            <p className="max-w-xs text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
               Ireland's digital magazine platform. Beautiful reading experiences for maritime,
               aviation, business and regional publications.
             </p>
           </div>
 
           <div>
-            <h4 className="font-semibold text-sm uppercase tracking-widest text-blue-400 mb-4">
+            <h4
+              className="mb-4 text-xs font-semibold uppercase tracking-widest"
+              style={{ color: '#EFF5EE' }}
+            >
               Publications
             </h4>
-            <ul className="space-y-2 text-sm text-blue-200">
-              <li><Link href="/subscribe/the-skipper" className="hover:text-white transition-colors">The Skipper</Link></li>
-              <li><Link href="/subscribe/take-off" className="hover:text-white transition-colors">Take Off</Link></li>
-              <li><Link href="/subscribe/the-business" className="hover:text-white transition-colors">The Business</Link></li>
-              <li><Link href="/subscribe/due-south" className="hover:text-white transition-colors">Due South</Link></li>
+            <ul className="space-y-2 text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              <li>
+                <Link href="/publications/the-skipper" className="transition hover:text-white">
+                  The Skipper
+                </Link>
+              </li>
+              <li>
+                <Link href="/publications/take-off" className="transition hover:text-white">
+                  Take Off
+                </Link>
+              </li>
+              <li>
+                <Link href="/publications/go-west" className="transition hover:text-white">
+                  Go West
+                </Link>
+              </li>
+              <li>
+                <Link href="/publications/due-south" className="transition hover:text-white">
+                  Due South
+                </Link>
+              </li>
+              <li>
+                <Link href="/publications/the-business" className="transition hover:text-white">
+                  The Business
+                </Link>
+              </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold text-sm uppercase tracking-widest text-blue-400 mb-4">
+            <h4
+              className="mb-4 text-xs font-semibold uppercase tracking-widest"
+              style={{ color: '#EFF5EE' }}
+            >
               Account
             </h4>
-            <ul className="space-y-2 text-sm text-blue-200">
-              <li><Link href="/login" className="hover:text-white transition-colors">Login</Link></li>
-              <li><Link href="/register" className="hover:text-white transition-colors">Register</Link></li>
-              <li><Link href="/#publications" className="hover:text-white transition-colors">Subscribe</Link></li>
-              <li><Link href="/account" className="hover:text-white transition-colors">My Account</Link></li>
+            <ul className="space-y-2 text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              <li>
+                <Link href="/login" className="transition hover:text-white">
+                  Sign In
+                </Link>
+              </li>
+              <li>
+                <Link href="/publications" className="transition hover:text-white">
+                  Subscribe
+                </Link>
+              </li>
+              <li>
+                <Link href="/account" className="transition hover:text-white">
+                  My Account
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-blue-400">
+        <div
+          className="flex flex-col items-center justify-between gap-4 border-t pt-8 text-sm sm:flex-row"
+          style={{ borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.75)' }}
+        >
           <p>© {new Date().getFullYear()} Mara Media. All rights reserved.</p>
           <p>read.maramedia.ie</p>
         </div>
