@@ -11,6 +11,8 @@ const pubMeta = {
   'the-business': { frequency: 'Annual',  titleLine1: 'The',      titleLine2: 'Business',  year: '2024' },
 }
 
+const publicationOrder = ['the-skipper', 'take-off', 'go-west', 'due-south', 'the-business']
+
 function ArrowRight() {
   return (
     <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2}
@@ -30,8 +32,16 @@ export default async function PublicationsGrid({
 
   const publications = await prisma.publication.findMany({
     where: { isPublished: true },
-    orderBy: { title: 'asc' },
   })
+
+  publications.sort((a, b) => {
+    const indexA = publicationOrder.indexOf(a.slug)
+    const indexB = publicationOrder.indexOf(b.slug)
+    const safeA = indexA === -1 ? publicationOrder.length : indexA
+    const safeB = indexB === -1 ? publicationOrder.length : indexB
+    return safeA - safeB
+  })
+
   let subscribedIds = new Set()
   if (session?.user?.email) {
     const user = await prisma.user.findUnique({ where: { email: session.user.email } })
@@ -91,18 +101,6 @@ export default async function PublicationsGrid({
 
                     <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/10 to-transparent" />
 
-                    <div className="absolute top-3 left-3 text-white">
-                      {meta.titleLine1 && (
-                        <p className="text-[11px] font-light opacity-90 tracking-[0.05em] mb-0.5">
-                          {meta.titleLine1}
-                        </p>
-                      )}
-                      <p className="text-[22px] font-bold leading-tight tracking-tight">
-                        {meta.titleLine2}
-                      </p>
-                      <p className="text-[11px] opacity-70 mt-0.5">{meta.year}</p>
-                    </div>
-
                     {isSubscribed && (
                       <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wide bg-[#2F7D1B] text-white px-2 py-1 rounded-full">
                         Subscribed
@@ -142,7 +140,7 @@ export default async function PublicationsGrid({
                       </Link>
                     ) : (
                       <Link
-                        href={`/subscribe/${pub.slug}`}
+                        href={`/read/${pub.slug}`}
                         className="
                           flex items-center justify-center gap-[20px] w-full
                           min-h-[44px] px-4 py-2.5 rounded-lg
@@ -152,7 +150,7 @@ export default async function PublicationsGrid({
                           transition-all duration-200
                         "
                       >
-                        Subscribe
+                        View Publication
                         <ArrowRight />
                       </Link>
                     )}

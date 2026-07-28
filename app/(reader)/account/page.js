@@ -13,13 +13,25 @@ export default async function AccountPage() {
     where: { email: session.user.email },
     include: {
       subscriptions: {
-        include: { publication: true },
+        include: {
+          publication: {
+            include: {
+              issues: {
+                where: { isPublished: true },
+                orderBy: { publishedAt: 'desc' },
+                take: 1,
+              },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
       },
     },
   })
 
   if (!user) redirect('/login')
+
+  const activeSubscriptions = user.subscriptions.filter(s => s.status === 'active')
 
   return (
     <div className="min-h-screen bg-[#F7F8FA]">
@@ -35,9 +47,9 @@ export default async function AccountPage() {
         </div>
 
         <div className="mb-8">
-          <h2 className="text-xs font-bold text-[#657084] uppercase tracking-widest mb-4">Subscriptions &amp; Billing</h2>
-
-          {user.subscriptions.length === 0 ? (
+          <h1 className="text-md font-bold text-[#657084] uppercase tracking-widest mb-4">My Library</h1>
+          <h2 className='text-sm font-bold text-black uppercase tracking-widest mb-4'>Access all your subscribed publications in one place.</h2>
+          {activeSubscriptions.length === 0 ? (
             <div className="bg-white border border-[#D9E0E7] rounded-2xl p-10 text-center">
               <div className="w-12 h-12 rounded-full bg-[#EFF5EE] flex items-center justify-center mx-auto mb-4">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F7D1B" strokeWidth="2">
@@ -45,13 +57,49 @@ export default async function AccountPage() {
                   <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                 </svg>
               </div>
-              <p className="text-[#0B1830] font-semibold mb-1">No subscriptions yet</p>
-              <p className="text-sm text-[#657084] mb-6">Subscribe to a publication to get started</p>
+              <p className="text-[#0B1830] font-semibold mb-1">Your library is empty</p>
+              <p className="text-sm text-[#657084] mb-6">Subscribe to a publication to start reading</p>
               <a href="/browse" className="inline-block bg-[#2F7D1B] hover:bg-[#256516] text-white font-semibold px-6 py-3 rounded-xl text-sm transition">
                 Browse Publications
               </a>
             </div>
           ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {activeSubscriptions.map((sub) => {
+                const pub = sub.publication
+                const latestIssue = pub.issues[0]
+
+                return (
+                  <div key={sub.id} className="bg-white border border-[#D9E0E7] rounded-2xl overflow-hidden flex flex-col">
+                    <div className="aspect-[3/4] bg-[#081B31]">
+                      {pub.coverImageUrl && (
+                        <img src={pub.coverImageUrl} alt={pub.title} className="w-full h-full object-cover" />
+                      )}
+                    </div>
+
+                    <div className="p-5 flex flex-col flex-1">
+                      <h3 className="text-[#0B1830] font-bold mb-1">{pub.title}</h3>
+                      <p className="text-xs text-[#657084] mb-4">
+                        {latestIssue ? `Latest: ${latestIssue.title}` : 'No issues published yet'}
+                      </p>
+
+                      <a href={`/read/${pub.slug}`}
+                        className="mt-auto text-center bg-[#2F7D1B] hover:bg-[#256516] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
+                      >
+                        Continue Reading
+                      </a>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {user.subscriptions.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xs font-bold text-[#657084] uppercase tracking-widest mb-4">Subscriptions &amp; Billing</h2>
+
             <div className="bg-white border border-[#D9E0E7] rounded-2xl divide-y divide-[#D9E0E7]">
               {user.subscriptions.map((sub) => {
                 const isActive = sub.status === 'active'
@@ -90,8 +138,7 @@ export default async function AccountPage() {
                         publicationTitle={sub.publication.title}
                       />
                     ) : (
-                      
-                       <a href={`/subscribe/${sub.publication.slug}`}
+                      <a href={`/subscribe/${sub.publication.slug}`}
                         className="text-sm font-semibold text-[#2F7D1B] hover:text-[#256516] transition"
                       >
                         Resubscribe →
@@ -101,8 +148,8 @@ export default async function AccountPage() {
                 )
               })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="mb-8">
           <h2 className="text-xs font-bold text-[#657084] uppercase tracking-widest mb-4">Account Details</h2>
@@ -122,8 +169,7 @@ export default async function AccountPage() {
           </div>
         </div>
 
-        
-          <a href="/api/auth/signout"
+        <a href="/api/auth/signout"
           className="inline-block text-sm font-semibold text-[#657084] hover:text-[#0B1830] transition"
         >
           Sign out

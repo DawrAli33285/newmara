@@ -3,7 +3,14 @@
 import { useState, useRef, useEffect } from "react";
 import HTMLFlipBook from "react-pageflip";
 
-export default function FlipbookViewer({ pdfUrl, title, issueId }) {
+export default function FlipbookViewer({
+  pdfUrl,
+  title,
+  issueId,
+  isSubscribed = true,
+  previewLimit = 4,
+  publicationSlug,
+}) {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState({
@@ -18,6 +25,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
   const [isMobile, setIsMobile] = useState(false);
   const [overlays, setOverlays] = useState([]);
   const [activeVideo, setActiveVideo] = useState(null);
+  const [showPaywall, setShowPaywall] = useState(false);
   const flipBook = useRef(null);
   const containerRef = useRef(null);
   const pageViewTimeout = useRef(null);
@@ -152,7 +160,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
       if (e.key === "ArrowLeft") {
         flipBook.current?.pageFlip().flipPrev();
       } else if (e.key === "ArrowRight") {
-        flipBook.current?.pageFlip().flipNext();
+        attemptFlipNext();
       } else if (e.key === "+" || e.key === "=") {
         setZoom((z) => Math.min(z + 0.25, 3));
       } else if (e.key === "-" || e.key === "_") {
@@ -160,6 +168,8 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
       } else if (e.key === "Escape") {
         if (activeVideo) {
           setActiveVideo(null);
+        } else if (showPaywall) {
+          setShowPaywall(false);
         } else if (isFullscreen) {
           document.exitFullscreen();
         }
@@ -167,7 +177,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFullscreen, activeVideo]);
+  }, [isFullscreen, activeVideo, showPaywall, isSubscribed, previewLimit, currentPage]);
 
   useEffect(() => {
     return () => {
@@ -177,6 +187,16 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
 
   function handleFlip(e) {
     const newPage = e.data;
+
+    if (!isSubscribed && newPage >= previewLimit) {
+      setTimeout(() => {
+        flipBook.current?.pageFlip()?.turnToPage(previewLimit - 1);
+      }, 0);
+      setCurrentPage(previewLimit - 1);
+      setShowPaywall(true);
+      return;
+    }
+
     setCurrentPage(newPage);
 
     if (!issueId) return;
@@ -189,6 +209,14 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
         body: JSON.stringify({ issueId, pageNumber: newPage + 1 }),
       }).catch(() => {});
     }, 800);
+  }
+
+  function attemptFlipNext() {
+    if (!isSubscribed && currentPage + 1 >= previewLimit) {
+      setShowPaywall(true);
+      return;
+    }
+    flipBook.current?.pageFlip().flipNext();
   }
 
   function zoomIn() {
@@ -637,6 +665,67 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
         </div>
       )}
 
+      {showPaywall && (
+        <div
+          className="fixed inset-0 flex items-center justify-center p-4"
+          style={{ zIndex: 9999, background: "rgba(0,0,0,0.78)", backdropFilter: "blur(2px)" }}
+        >
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl text-center"
+            style={{ width: "min(92vw, 420px)", padding: "40px 28px 32px" }}
+          >
+            <button
+              onClick={() => setShowPaywall(false)}
+              className="absolute flex items-center justify-center text-gray-400 hover:text-gray-700 transition"
+              style={{
+                top: 12,
+                right: 12,
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                fontSize: 16,
+              }}
+              title="Close"
+            >
+              ✕
+            </button>
+
+            <div
+              className="mx-auto flex items-center justify-center rounded-full"
+              style={{ width: 56, height: 56, background: "rgba(47,125,27,0.1)", marginBottom: 16 }}
+            >
+              <span style={{ fontSize: 24 }}>🔒</span>
+            </div>
+
+            <h2 className="text-lg font-bold text-gray-900 mb-2">
+              You've reached the preview limit
+            </h2>
+            <p className="text-sm text-gray-500 mb-6">
+              You've read the first {previewLimit} pages for free. Subscribe to unlock the complete issue.
+            </p>
+
+            
+             <a href={publicationSlug ? `/subscribe/${publicationSlug}` : "#"}
+              className="flex items-center justify-center gap-2 w-full rounded-xl text-base font-semibold text-white transition hover:opacity-90"
+              style={{ backgroundColor: "#2F7D1B", minHeight: 48, padding: "12px 20px" }}
+            >
+              Subscribe to Continue Reading
+            </a>
+
+            <button
+              onClick={() => setShowPaywall(false)}
+              className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition"
+              style={{ background: "none", border: "none", cursor: "pointer" }}
+            >
+              Keep browsing the preview
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 sm:gap-3 bg-white rounded-full shadow-xl px-3 sm:px-6 py-1.5 sm:py-2 border border-gray-100 max-w-[95vw] overflow-x-auto">
         <button
           onClick={() => flipBook.current?.pageFlip().flipPrev()}
@@ -649,7 +738,7 @@ export default function FlipbookViewer({ pdfUrl, title, issueId }) {
           {currentPage + 1} / {totalPages}
         </span>
         <button
-          onClick={() => flipBook.current?.pageFlip().flipNext()}
+          onClick={attemptFlipNext}
           className="p-2 hover:bg-gray-100 rounded-full transition text-gray-700 text-xl shrink-0"
           title="Next page"
         >

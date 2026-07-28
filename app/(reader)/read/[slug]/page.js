@@ -2,9 +2,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import FlipbookWrapper from '@/components/FlipbookWrapper'
 import BackButton from '@/components/BackButton'
+
+const PREVIEW_PAGE_LIMIT = 4
 
 export default async function ReadPage({ params, searchParams }) {
   const { slug } = await params
@@ -29,8 +31,11 @@ export default async function ReadPage({ params, searchParams }) {
   })
 
   const awaitedSearch = await searchParams
+  const isAdmin = user?.role === 'admin'
 
-  if (user?.role !== 'admin') {
+  let isSubscribed = isAdmin
+
+  if (!isAdmin) {
     if (awaitedSearch?.subscribed === '1') {
       await new Promise((r) => setTimeout(r, 2000))
     }
@@ -42,7 +47,7 @@ export default async function ReadPage({ params, searchParams }) {
         status: 'active',
       },
     })
-    if (!subscription) redirect(`/subscribe/${slug}`)
+    isSubscribed = !!subscription
   }
 
   if (publication.issues.length === 0) {
@@ -57,8 +62,12 @@ export default async function ReadPage({ params, searchParams }) {
     )
   }
 
-  const selectedIssueId = awaitedSearch?.issue || publication.issues[0].id
-  const selectedIssue = publication.issues.find(i => i.id === selectedIssueId) || publication.issues[0]
+  const latestIssue = publication.issues[0]
+
+  const selectedIssueId = isSubscribed ? (awaitedSearch?.issue || latestIssue.id) : latestIssue.id
+  const selectedIssue = isSubscribed
+    ? (publication.issues.find(i => i.id === selectedIssueId) || latestIssue)
+    : latestIssue
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -70,14 +79,26 @@ export default async function ReadPage({ params, searchParams }) {
           </div>
           <a href="/" className="text-xs text-gray-400 hover:text-gray-700 transition">Home</a>
         </div>
-        <BackButton />
+
+        <div className="flex items-center gap-4">
+          {!isSubscribed && (
+            <Link
+              href={`/subscribe/${slug}`}
+              className="text-xs sm:text-sm font-semibold text-white px-3 sm:px-4 py-2 rounded-full transition hover:opacity-90"
+              style={{ backgroundColor: '#2F7D1B', minHeight: 36 }}
+            >
+              Subscribe
+            </Link>
+          )}
+          <BackButton />
+        </div>
       </div>
 
-      {publication.issues.length > 1 && (
+      {isSubscribed && publication.issues.length > 1 && (
         <div className="bg-white border-b border-gray-100 px-6 py-2 flex gap-2 overflow-x-auto sticky top-[45px] z-30">
           {publication.issues.map((issue) => (
-            <a
-              key={issue.id}
+            
+              <a key={issue.id}
               href={`/read/${slug}?issue=${issue.id}`}
               className={`px-4 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${
                 issue.id === selectedIssue.id
@@ -91,9 +112,15 @@ export default async function ReadPage({ params, searchParams }) {
         </div>
       )}
 
-
       <div className="px-2">
-        <FlipbookWrapper pdfUrl={selectedIssue.pdfUrl} title={selectedIssue.title} issueId={selectedIssue.id} />
+        <FlipbookWrapper
+          pdfUrl={selectedIssue.pdfUrl}
+          title={selectedIssue.title}
+          issueId={selectedIssue.id}
+          isSubscribed={isSubscribed}
+          previewLimit={PREVIEW_PAGE_LIMIT}
+          publicationSlug={slug}
+        />
       </div>
     </div>
   )

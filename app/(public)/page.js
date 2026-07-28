@@ -17,7 +17,7 @@ export default function HomePage() {
       <TrustStrip />
       <PublicationsGrid />
       <HowItWorks />
-      <Footer />
+     
     </>
   )
 }

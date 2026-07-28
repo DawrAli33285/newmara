@@ -6,16 +6,15 @@ import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import logo from '../public/logo.png'
 import Image from 'next/image'
+
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'admin'
-  const showLibrary = !!session && !isAdmin
   const pathname = usePathname()
+
   const navLinks = [
     { label: 'Publications', href: '/browse' },
-    // { label: 'Advertise',    href: '/advertise' },
-    { label: 'About',        href: '/about' },
   ]
 
   const isActive = (href) => pathname === href || pathname.startsWith(href + '/')
@@ -32,14 +31,11 @@ export default function Navbar() {
             className="rounded-md"
             priority
           />
-          <div className="leading-tight">
-            <p className="text-[13px] font-bold tracking-wide text-[#081B31]">mara</p>
-            <p className="text-[13px] font-bold tracking-wide text-[#081B31]">media</p>
-          </div>
-          <span className="hidden sm:block text-[12px] font-semibold tracking-wider text-[#657084] uppercase border-l border-[#D9E0E7] pl-3 ml-1">
+          <span className="hidden sm:inline text-[13px] font-semibold tracking-widest text-[#657084] uppercase">
             Publications
           </span>
         </Link>
+
         <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
           {navLinks.map(({ label, href }) => (
             <Link
@@ -54,27 +50,9 @@ export default function Navbar() {
               {label}
             </Link>
           ))}
-          {showLibrary && (
-            <Link
-              href="/library"
-              className={`text-[15px] font-medium pb-0.5 border-b-2 transition-colors ${
-                isActive('/library')
-                  ? 'text-[#2F7D1B] border-[#2F7D1B]'
-                  : 'text-[#0B1830] border-transparent hover:text-[#2F7D1B]'
-              }`}
-            >
-              My Library
-            </Link>
-          )}
         </nav>
-        <div className="hidden md:flex items-center gap-5">
-          <Link
-            href="/browse"
-            className="inline-flex items-center justify-center text-[14px] font-semibold px-5 min-h-[44px] rounded-full bg-[#2F7D1B] text-white hover:bg-[#256315] transition-colors"
-          >
-            Subscribe
-          </Link>
 
+        <div className="hidden md:flex items-center gap-5">
           {session ? (
             <Link
               href={isAdmin ? '/dashboard' : '/account'}
@@ -99,6 +77,7 @@ export default function Navbar() {
             </Link>
           )}
         </div>
+
         <button
           className="md:hidden flex flex-col justify-center items-center gap-1.5 min-h-[44px] min-w-[44px] p-2"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -109,6 +88,7 @@ export default function Navbar() {
           <span className="block w-5 h-0.5 rounded bg-[#081B31]" />
         </button>
       </div>
+
       {menuOpen && (
         <div className="md:hidden bg-white border-t border-[#D9E0E7]">
           <div className="flex flex-col px-6 py-4 gap-1">
@@ -124,25 +104,6 @@ export default function Navbar() {
                 {label}
               </Link>
             ))}
-            {showLibrary && (
-              <Link
-                href="/library"
-                className={`text-[16px] font-medium min-h-[44px] flex items-center ${
-                  isActive('/library') ? 'text-[#2F7D1B]' : 'text-[#0B1830]'
-                }`}
-                onClick={() => setMenuOpen(false)}
-              >
-                My Library
-              </Link>
-            )}
-
-            <Link
-              href="/publications"
-              className="inline-flex items-center justify-center text-[15px] font-semibold min-h-[44px] rounded-full bg-[#2F7D1B] text-white mt-2"
-              onClick={() => setMenuOpen(false)}
-            >
-              Subscribe
-            </Link>
 
             <div className="border-t border-[#D9E0E7] pt-4 mt-2">
               {session ? (
