@@ -1,4 +1,5 @@
 import SubscribeButton from "@/app/(public)/subscribe/[slug]/SubscribeButton";
+import LatestIssuePreviewButton from "./LatestIssuePreviewButton";
 
 export default function SubscriptionCard({
   slug,
@@ -6,6 +7,7 @@ export default function SubscriptionCard({
   style,
   alreadySubscribed,
   loggedIn,
+  latestIssue,
 }) {
   return (
     <div
@@ -73,13 +75,27 @@ export default function SubscriptionCard({
               Log in to Subscribe
             </a>
           )}
-
+          {latestIssue && (
+            <LatestIssuePreviewButton
+              issue={latestIssue}
+              publicationSlug={slug}
+              title={publication.title}
+              isSubscribed={alreadySubscribed}
+              previewLimit={4}
+            />
+          )}
           <p
             className="flex items-center justify-center gap-2 text-sm"
             style={{ color: "#657084" }}
           >
             <LockIcon />
             Secure checkout
+          </p>
+          <p
+            className="flex items-center justify-center gap-2 text-sm"
+            style={{ color: "#657084" }}
+          >
+            Instant access after subscription
           </p>
         </div>
       )}
@@ -111,7 +127,13 @@ function CheckIcon() {
 
 function LockIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
       <rect
         x="5"
         y="10"

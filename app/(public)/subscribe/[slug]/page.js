@@ -12,20 +12,14 @@ const styleMap = {
     emoji: "⚓",
     price: "€99/year",
     tagline: "Monthly maritime publication",
-    lead: "The voice of Ireland's fishing industry for over 60 years. Bringing you the latest news, vessel features, fishing technology, regulations, ports, seafood, events and industry developments from Ireland and beyond.",
+    lead: "Ireland's leading maritime publication since 1964. Read every monthly edition digitally, with instant access to the latest industry news, vessel features, regulations and market developments from Ireland and around the world.",
     benefits: [
       { text: "Every monthly issue of The Skipper" },
-      { text: "Full archive of past editions" },
-      { text: "Interactive flipbook reader" },
-      { text: "Read on any device" },
-      { text: "Monthly digital industry updates", new: true },
-      {
-        text: "Featured suppliers, promotions and product launches",
-        new: true,
-      },
-      {
-        text: "Interactive adverts linking directly to businesses and services",
-      },
+      { text: "Full archive of previous editions" },
+      { text: "Interactive digital reader", new: true },
+      { text: "Read on desktop, tablet & mobile" },
+      { text: "Interactive adverts linking directly to businesses", new: true },
+      { text: "Exclusive supplier offers & product launches" },
     ],
     updatesPanel: {
       heading: "Monthly digital updates",
@@ -166,7 +160,11 @@ export default async function SubscribePage({ params }) {
 
   const publication = await prisma.publication.findUnique({ where: { slug } });
   if (!publication) redirect("/");
-
+  const latestIssue = await prisma.issue.findFirst({
+    where: { publicationId: publication.id, isPublished: true },
+    orderBy: { publishedAt: "desc" },
+    select: { id: true, title: true, pdfUrl: true },
+  });
   let alreadySubscribed = false;
   if (session) {
     const user = await prisma.user.findUnique({
@@ -229,13 +227,14 @@ export default async function SubscribePage({ params }) {
               style={style}
               alreadySubscribed={alreadySubscribed}
               loggedIn={!!session}
+              latestIssue={latestIssue}
             />
           </div>
         </div>
 
         <DigitalUpdatesPanel style={style} />
 
-        <div
+        {/* <div
           className="mt-10 grid grid-cols-1 gap-6 rounded-2xl border p-6 sm:grid-cols-3 sm:p-8"
           style={{ borderColor: "#D9E0E7" }}
         >
@@ -254,7 +253,7 @@ export default async function SubscribePage({ params }) {
             title="Cancel anytime"
             body="No long-term commitment. Cancel anytime."
           />
-        </div>
+        </div> */}
       </div>
     </div>
   );

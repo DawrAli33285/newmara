@@ -2,7 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import LatestIssuePreviewButton from "@/components/LatestIssuePreviewButton";
 
 const pubMeta = {
   "the-skipper": {
@@ -95,17 +94,6 @@ export default async function PublicationsGrid({
     }
   }
 
-  const publicationsWithLatestIssue = await Promise.all(
-    publications.map(async (pub) => {
-      const latestIssue = await prisma.issue.findFirst({
-        where: { publicationId: pub.id, isPublished: true },
-        orderBy: { publishedAt: "desc" },
-        select: { id: true, title: true, pdfUrl: true },
-      });
-      return { ...pub, latestIssue };
-    })
-  );
-
   return (
     <section className={bgClassName}>
       <div className="max-w-360 mx-auto px-6 py-16">
@@ -121,13 +109,13 @@ export default async function PublicationsGrid({
           <div className="w-10 h-1 rounded-full mx-auto bg-[#2F7D1B]" />
         </div>
 
-        {publicationsWithLatestIssue.length === 0 ? (
+        {publications.length === 0 ? (
           <p className="text-center text-[16px] text-[#657084]">
             No publications available yet.
           </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {publicationsWithLatestIssue.map((pub) => {
+            {publications.map((pub) => {
               const meta = pubMeta[pub.slug] ?? {
                 frequency: "Annual",
                 titleLine1: null,
@@ -149,6 +137,9 @@ export default async function PublicationsGrid({
                         className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
                       />
                     )}
+
+             
+
                     {isSubscribed && (
                       <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wide bg-[#2F7D1B] text-white px-2 py-1 rounded-full">
                         Subscribed
@@ -171,47 +162,37 @@ export default async function PublicationsGrid({
                       </p>
                     )}
 
-                    <div className="flex flex-col gap-2">
-                      {isSubscribed ? (
-                        <Link
-                          href={`/read/${pub.slug}`}
-                          className="
-                            flex items-center justify-center gap-[20px] w-full
-                            min-h-[44px] px-4 py-2.5 rounded-lg
-                            text-[15px] font-medium
-                            bg-[#2F7D1B] text-white
-                            hover:bg-[#256315]
-                            transition-all duration-200
-                          "
-                        >
-                          Read Now
-                          <ArrowRight />
-                        </Link>
-                      ) : (
-                        <Link
-                          href={`/read/${pub.slug}`}
-                          className="
-                            flex items-center justify-center gap-[20px] w-full
-                            min-h-[44px] px-4 py-2.5 rounded-lg
-                            text-[15px] font-medium
-                            border border-[#2F7D1B] text-[#2F7D1B]
-                            hover:bg-[#2F7D1B] hover:text-white
-                            transition-all duration-200
-                          "
-                        >
-                          View Publication
-                          <ArrowRight />
-                        </Link>
-                      )}
-
-                      <LatestIssuePreviewButton
-                        issue={pub.latestIssue}
-                        publicationSlug={pub.slug}
-                        title={pub.title}
-                        isSubscribed={isSubscribed}
-                        previewLimit={4}
-                      />
-                    </div>
+                    {isSubscribed ? (
+                      <Link
+                        href={`/read/${pub.slug}`}
+                        className="
+                          flex items-center justify-center gap-[20px] w-full
+                          min-h-[44px] px-4 py-2.5 rounded-lg
+                          text-[15px] font-medium
+                          bg-[#2F7D1B] text-white
+                          hover:bg-[#256315]
+                          transition-all duration-200
+                        "
+                      >
+                        Read Now
+                        <ArrowRight />
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/read/${pub.slug}`}
+                        className="
+                          flex items-center justify-center gap-[20px] w-full
+                          min-h-[44px] px-4 py-2.5 rounded-lg
+                          text-[15px] font-medium
+                          border border-[#2F7D1B] text-[#2F7D1B]
+                          hover:bg-[#2F7D1B] hover:text-white
+                          transition-all duration-200
+                        "
+                      >
+                        View Publication
+                        <ArrowRight />
+                      </Link>
+                    )}
                   </div>
                 </div>
               );

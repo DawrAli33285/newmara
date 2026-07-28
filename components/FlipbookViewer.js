@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import HTMLFlipBook from "react-pageflip";
-
+import { usePathname } from "next/navigation";
 export default function FlipbookViewer({
   pdfUrl,
   title,
@@ -17,6 +17,8 @@ export default function FlipbookViewer({
     current: 0,
     total: 0,
   });
+  const pathname = usePathname();
+  const isOnSubscribePage = pathname?.startsWith("/subscribe/");
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -177,7 +179,14 @@ export default function FlipbookViewer({
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFullscreen, activeVideo, showPaywall, isSubscribed, previewLimit, currentPage]);
+  }, [
+    isFullscreen,
+    activeVideo,
+    showPaywall,
+    isSubscribed,
+    previewLimit,
+    currentPage,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -288,7 +297,6 @@ export default function FlipbookViewer({
 
     return { kind: "iframe", src: url };
   }
-
 
   function getOverlayEmbedPreview(o) {
     if (o.type !== "video") return null;
@@ -511,7 +519,7 @@ export default function FlipbookViewer({
                                 tabIndex={-1}
                               />
                             )}
-                 
+
                             <span
                               style={{
                                 position: "absolute",
@@ -562,7 +570,9 @@ export default function FlipbookViewer({
                               zIndex: 2,
                             }}
                           >
-                            <span style={{ marginLeft: 2, fontSize: 14 }}>▶</span>
+                            <span style={{ marginLeft: 2, fontSize: 14 }}>
+                              ▶
+                            </span>
                           </span>
                         )}
                         {o.type !== "video" && (
@@ -597,7 +607,11 @@ export default function FlipbookViewer({
       {activeVideo && (
         <div
           className="fixed inset-0 flex items-center justify-center p-4"
-          style={{ zIndex: 9999, background: "rgba(0,0,0,0.78)", backdropFilter: "blur(2px)" }}
+          style={{
+            zIndex: 9999,
+            background: "rgba(0,0,0,0.78)",
+            backdropFilter: "blur(2px)",
+          }}
           onClick={() => setActiveVideo(null)}
         >
           <div
@@ -707,21 +721,25 @@ export default function FlipbookViewer({
               You've read the first {previewLimit} pages for free. Subscribe to unlock the complete issue.
             </p>
 
-            
-             <a href={publicationSlug ? `/subscribe/${publicationSlug}` : "#"}
-              className="flex items-center justify-center gap-2 w-full rounded-xl text-base font-semibold text-white transition hover:opacity-90"
-              style={{ backgroundColor: "#2F7D1B", minHeight: 48, padding: "12px 20px" }}
-            >
-              Subscribe to Continue Reading
-            </a>
+            {!isOnSubscribePage && (
+              <>
+                
+                <a  href={publicationSlug ? `/subscribe/${publicationSlug}` : "#"}
+                  className="flex items-center justify-center gap-2 w-full rounded-xl text-base font-semibold text-white transition hover:opacity-90"
+                  style={{ backgroundColor: "#2F7D1B", minHeight: 48, padding: "12px 20px" }}
+                >
+                  Subscribe to Continue Reading
+                </a>
 
-            <button
-              onClick={() => setShowPaywall(false)}
-              className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition"
-              style={{ background: "none", border: "none", cursor: "pointer" }}
-            >
-              Keep browsing the preview
-            </button>
+                <button
+                  onClick={() => setShowPaywall(false)}
+                  className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition"
+                  style={{ background: "none", border: "none", cursor: "pointer" }}
+                >
+                  Keep browsing the preview
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
