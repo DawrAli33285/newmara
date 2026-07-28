@@ -23,7 +23,7 @@ export default function HeroSection() {
     <section
       className="
         w-full relative overflow-hidden
-        bg-[url('../public/banner.png')] bg-cover bg-center
+        bg-[url('../public/banner.jpg')] bg-cover bg-center
         min-h-[480px] lg:min-h-[540px]
       "
     >
@@ -62,7 +62,7 @@ export default function HeroSection() {
               alt="Mara Media"
               width={1000}
               height={1000}
-              className="w-[400px] max-w-[400px] h-auto object-contain drop-shadow-2xl"
+              className="w-[800px] max-w-[800px] h-auto object-contain drop-shadow-2xl"
               priority
             />
           </div>

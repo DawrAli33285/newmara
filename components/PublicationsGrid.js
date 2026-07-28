@@ -1,63 +1,114 @@
-import Link from 'next/link'
-import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import LatestIssuePreviewButton from "@/components/LatestIssuePreviewButton";
 
 const pubMeta = {
-  'the-skipper':  { frequency: 'Monthly', titleLine1: '— The —', titleLine2: 'Skipper',   year: 'May 2024' },
-  'take-off':     { frequency: 'Annual',  titleLine1: null,       titleLine2: 'Take Off',  year: '2024' },
-  'go-west':      { frequency: 'Annual',  titleLine1: null,       titleLine2: 'Go West',   year: '2024' },
-  'due-south':    { frequency: 'Annual',  titleLine1: null,       titleLine2: 'Due South', year: '2024' },
-  'the-business': { frequency: 'Annual',  titleLine1: 'The',      titleLine2: 'Business',  year: '2024' },
-}
+  "the-skipper": {
+    frequency: "Monthly",
+    titleLine1: "— The —",
+    titleLine2: "Skipper",
+    year: "May 2024",
+  },
+  "take-off": {
+    frequency: "Annual",
+    titleLine1: null,
+    titleLine2: "Take Off",
+    year: "2024",
+  },
+  "go-west": {
+    frequency: "Annual",
+    titleLine1: null,
+    titleLine2: "Go West",
+    year: "2024",
+  },
+  "due-south": {
+    frequency: "Annual",
+    titleLine1: null,
+    titleLine2: "Due South",
+    year: "2024",
+  },
+  "the-business": {
+    frequency: "Annual",
+    titleLine1: "The",
+    titleLine2: "Business",
+    year: "2024",
+  },
+};
 
-const publicationOrder = ['the-skipper', 'take-off', 'go-west', 'due-south', 'the-business']
+const publicationOrder = [
+  "the-skipper",
+  "take-off",
+  "go-west",
+  "due-south",
+  "the-business",
+];
 
 function ArrowRight() {
   return (
-    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2}
-      strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+    <svg
+      className="w-4 h-4 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      viewBox="0 0 24 24"
+    >
       <line x1="5" y1="12" x2="19" y2="12" />
       <polyline points="12 5 19 12 12 19" />
     </svg>
-  )
+  );
 }
 
 export default async function PublicationsGrid({
-  heading = 'Browse Our Publications',
+  heading = "Browse Our Publications",
   subheading = null,
-  bgClassName = 'bg-white',
+  bgClassName = "bg-white",
 }) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions);
 
   const publications = await prisma.publication.findMany({
     where: { isPublished: true },
-  })
+  });
 
   publications.sort((a, b) => {
-    const indexA = publicationOrder.indexOf(a.slug)
-    const indexB = publicationOrder.indexOf(b.slug)
-    const safeA = indexA === -1 ? publicationOrder.length : indexA
-    const safeB = indexB === -1 ? publicationOrder.length : indexB
-    return safeA - safeB
-  })
+    const indexA = publicationOrder.indexOf(a.slug);
+    const indexB = publicationOrder.indexOf(b.slug);
+    const safeA = indexA === -1 ? publicationOrder.length : indexA;
+    const safeB = indexB === -1 ? publicationOrder.length : indexB;
+    return safeA - safeB;
+  });
 
-  let subscribedIds = new Set()
+  let subscribedIds = new Set();
   if (session?.user?.email) {
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
     if (user) {
       const subs = await prisma.subscription.findMany({
-        where: { userId: user.id, status: 'active' },
+        where: { userId: user.id, status: "active" },
         select: { publicationId: true },
-      })
-      subscribedIds = new Set(subs.map((s) => s.publicationId))
+      });
+      subscribedIds = new Set(subs.map((s) => s.publicationId));
     }
   }
+
+  const publicationsWithLatestIssue = await Promise.all(
+    publications.map(async (pub) => {
+      const latestIssue = await prisma.issue.findFirst({
+        where: { publicationId: pub.id, isPublished: true },
+        orderBy: { publishedAt: "desc" },
+        select: { id: true, title: true, pdfUrl: true },
+      });
+      return { ...pub, latestIssue };
+    })
+  );
 
   return (
     <section className={bgClassName}>
       <div className="max-w-360 mx-auto px-6 py-16">
-
         <div className="text-center mb-10">
           <h2 className="text-[26px] md:text-[32px] lg:text-[36px] font-bold tracking-tight text-[#0B1830] mb-3">
             {heading}
@@ -70,37 +121,34 @@ export default async function PublicationsGrid({
           <div className="w-10 h-1 rounded-full mx-auto bg-[#2F7D1B]" />
         </div>
 
-        {publications.length === 0 ? (
+        {publicationsWithLatestIssue.length === 0 ? (
           <p className="text-center text-[16px] text-[#657084]">
             No publications available yet.
           </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {publications.map((pub) => {
+            {publicationsWithLatestIssue.map((pub) => {
               const meta = pubMeta[pub.slug] ?? {
-                frequency: 'Annual',
+                frequency: "Annual",
                 titleLine1: null,
                 titleLine2: pub.title,
-                year: '2024',
-              }
-              const isSubscribed = subscribedIds.has(pub.id)
+                year: "2024",
+              };
+              const isSubscribed = subscribedIds.has(pub.id);
 
               return (
                 <div
                   key={pub.slug}
                   className="group flex flex-col rounded-2xl overflow-hidden border border-[#D9E0E7] bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
                 >
-                  <div className="relative overflow-hidden flex-shrink-0 aspect-[4/3] bg-[#0B2A4A]">
+                  <div className="relative overflow-hidden flex-shrink-0 aspect-[3/4] bg-[#0B2A4A]">
                     {pub.coverImageUrl && (
                       <img
                         src={pub.coverImageUrl}
                         alt={`${pub.title} cover`}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
                       />
                     )}
-
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/10 to-transparent" />
-
                     {isSubscribed && (
                       <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wide bg-[#2F7D1B] text-white px-2 py-1 rounded-full">
                         Subscribed
@@ -123,44 +171,54 @@ export default async function PublicationsGrid({
                       </p>
                     )}
 
-                    {isSubscribed ? (
-                      <Link
-                        href={`/read/${pub.slug}`}
-                        className="
-                          flex items-center justify-center gap-[20px] w-full
-                          min-h-[44px] px-4 py-2.5 rounded-lg
-                          text-[15px] font-medium
-                          bg-[#2F7D1B] text-white
-                          hover:bg-[#256315]
-                          transition-all duration-200
-                        "
-                      >
-                        Read Now
-                        <ArrowRight />
-                      </Link>
-                    ) : (
-                      <Link
-                        href={`/read/${pub.slug}`}
-                        className="
-                          flex items-center justify-center gap-[20px] w-full
-                          min-h-[44px] px-4 py-2.5 rounded-lg
-                          text-[15px] font-medium
-                          border border-[#2F7D1B] text-[#2F7D1B]
-                          hover:bg-[#2F7D1B] hover:text-white
-                          transition-all duration-200
-                        "
-                      >
-                        View Publication
-                        <ArrowRight />
-                      </Link>
-                    )}
+                    <div className="flex flex-col gap-2">
+                      {isSubscribed ? (
+                        <Link
+                          href={`/read/${pub.slug}`}
+                          className="
+                            flex items-center justify-center gap-[20px] w-full
+                            min-h-[44px] px-4 py-2.5 rounded-lg
+                            text-[15px] font-medium
+                            bg-[#2F7D1B] text-white
+                            hover:bg-[#256315]
+                            transition-all duration-200
+                          "
+                        >
+                          Read Now
+                          <ArrowRight />
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/read/${pub.slug}`}
+                          className="
+                            flex items-center justify-center gap-[20px] w-full
+                            min-h-[44px] px-4 py-2.5 rounded-lg
+                            text-[15px] font-medium
+                            border border-[#2F7D1B] text-[#2F7D1B]
+                            hover:bg-[#2F7D1B] hover:text-white
+                            transition-all duration-200
+                          "
+                        >
+                          View Publication
+                          <ArrowRight />
+                        </Link>
+                      )}
+
+                      <LatestIssuePreviewButton
+                        issue={pub.latestIssue}
+                        publicationSlug={pub.slug}
+                        title={pub.title}
+                        isSubscribed={isSubscribed}
+                        previewLimit={4}
+                      />
+                    </div>
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         )}
       </div>
     </section>
-  )
+  );
 }
