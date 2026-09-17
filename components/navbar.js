@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
@@ -9,13 +9,30 @@ import Image from 'next/image'
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()   
+  const [business, setBusiness] = useState(null)
   const isAdmin = session?.user?.role === 'admin'
+  const isBusiness = session?.user?.accountType === 'business' && !!business  
   const pathname = usePathname()
+
+  useEffect(() => {
+
+    if (status !== 'authenticated' || session?.user?.accountType !== 'business') {
+      setBusiness(null)
+      return
+    }
+
+    fetch('/api/business/me')
+      .then((res) => res.json())
+      .then((data) => setBusiness(data.business))
+      .catch(() => setBusiness(null))
+  }, [pathname, status, session?.user?.accountType])
 
   const navLinks = [
     { label: 'Publications', href: '/browse' },
+    ...(isBusiness ? [{ label: 'Business', href: '/business/businessprofile' }] : []),
   ]
+
 
   const isActive = (href) => pathname === href || pathname.startsWith(href + '/')
 
@@ -52,31 +69,52 @@ export default function Navbar() {
           ))}
         </nav>
 
+        
+          
         <div className="hidden md:flex items-center gap-5">
-          {session ? (
-            <Link
-              href={isAdmin ? '/dashboard' : '/account'}
-              className="flex items-center gap-1.5 text-[15px] font-medium text-[#0B1830] min-h-[44px] hover:opacity-70 transition-opacity"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              {isAdmin ? 'Dashboard' : 'My Account'}
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className="flex items-center gap-1.5 text-[15px] font-medium text-[#0B1830] min-h-[44px] hover:opacity-70 transition-opacity"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Sign In
-            </Link>
-          )}
-        </div>
+  {isBusiness ? (
+    <Link
+      href="/business/dashboard"
+      className="flex items-center gap-1.5 text-[15px] font-medium text-[#0B1830] min-h-[44px] hover:opacity-70 transition-opacity"
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+      Business Dashboard
+    </Link>
+  ) : session ? (
+    <Link
+      href={isAdmin ? '/dashboard' : '/account'}
+      className="flex items-center gap-1.5 text-[15px] font-medium text-[#0B1830] min-h-[44px] hover:opacity-70 transition-opacity"
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+      {isAdmin ? 'Dashboard' : 'My Account'}
+    </Link>
+  ) : (
+    <>
+      <Link
+        href="/business/login"
+        className="text-[15px] font-medium text-[#657084] min-h-[44px] flex items-center hover:text-[#0B1830] transition-colors"
+      >
+        Sign in as Business
+      </Link>
+      <Link
+        href="/login"
+        className="flex items-center gap-1.5 text-[15px] font-medium text-[#0B1830] min-h-[44px] hover:opacity-70 transition-opacity"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        Sign In
+      </Link>
+    </>
+  )}
+</div>
 
         <button
           className="md:hidden flex flex-col justify-center items-center gap-1.5 min-h-[44px] min-w-[44px] p-2"
@@ -105,41 +143,50 @@ export default function Navbar() {
               </Link>
             ))}
 
-            <div className="border-t border-[#D9E0E7] pt-4 mt-2">
-              {session ? (
-                <>
-                  <Link
-                    href={isAdmin ? '/dashboard' : '/account'}
-                    className="flex items-center gap-2 text-[16px] font-medium text-[#0B1830] min-h-[44px]"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    {isAdmin ? 'Dashboard' : 'My Account'}
-                  </Link>
-                  <button
-                    onClick={() => signOut({ callbackUrl: '/' })}
-                    className="text-[15px] text-[#657084] mt-2"
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <Link
-                  href="/login"
-                  className="flex items-center gap-2 text-[16px] font-medium text-[#0B1830] min-h-[44px]"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  Sign In
-                </Link>
-              )}
-            </div>
+<div className="border-t border-[#D9E0E7] pt-4 mt-2">
+  {session ? (
+    <>
+      <Link
+        href={isAdmin ? '/dashboard' : isBusiness ? '/business/dashboard' : '/account'}
+        className="flex items-center gap-2 text-[16px] font-medium text-[#0B1830] min-h-[44px]"
+        onClick={() => setMenuOpen(false)}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        {isAdmin ? 'Dashboard' : isBusiness ? 'Business Dashboard' : 'My Account'}
+      </Link>
+      <button
+        onClick={() => signOut({ callbackUrl: '/' })}
+        className="text-[15px] text-[#657084] mt-2"
+      >
+        Sign Out
+      </button>
+    </>
+  ) : (
+    <>
+      <Link
+        href="/business/login"
+        className="flex items-center gap-2 text-[15px] font-medium text-[#657084] min-h-[44px]"
+        onClick={() => setMenuOpen(false)}
+      >
+        Sign in as Business
+      </Link>
+      <Link
+        href="/login"
+        className="flex items-center gap-2 text-[16px] font-medium text-[#0B1830] min-h-[44px]"
+        onClick={() => setMenuOpen(false)}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        Sign In
+      </Link>
+    </>
+  )}
+</div>
           </div>
         </div>
       )}

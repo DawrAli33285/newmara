@@ -3,8 +3,185 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Business {
+  id                String               @id @default(cuid())
+  businessName      String
+  email             String               @unique
+  passwordHash      String
+  categoryId        String
+  category          Category             @relation(fields: [categoryId], references: [id])
+  stripeCustomerId  String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  advertiser        Advertiser?
+  businessProfile   BusinessProfile?
+  directoryListings DirectoryListing[]
+  assignments       BusinessAssignment[]
+  sponsoredDestinations Destination[]  @relation("DestinationMainSponsor")
+  subscriptions     BusinessSubscription[]
+}
+
+
+
+
+model BusinessProfile {
+  id                 String                @id @default(cuid())
+  businessId         String                @unique
+  logoUrl            String?
+  description        String?
+  location           String?
+  mapUrl             String?
+  website            String?
+  telephone          String?
+  socialLinks        Json?
+  galleryUrls        String[]
+  promoVideoUrl      String?
+  ctaText            String?
+  ctaUrl             String?
+  ghlContactId       String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  business           Business              @relation(fields: [businessId], references: [id])
+  profileEdits       BusinessProfileEdit[]
+  digitalPartner     DigitalPartner?
+  engagementEvents   EngagementEvent[]
+  enquiries          Enquiry[]
+  featuredPlacements FeaturedPlacement[]
+  offers             Offer[]
+}
+
+model BusinessProfileEdit {
+  id                String          @id @default(cuid())
+  businessProfileId String
+  changes           Json
+  status            String          @default("pending")
+  submittedAt       DateTime        @default(now())
+  reviewedAt        DateTime?
+  reviewedBy        String?
+  rejectionReason   String?
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+
+  @@index([businessProfileId, status])
+}
+
+model DigitalPackage {
+  id              String               @id @default(cuid())
+  name            String               @unique
+  description     String?
+  priceCents      Int?
+  discountedPriceCents Int?    
+  billingInterval String?
+  packageType     String               @default("digital_partner") // "digital_partner" | "directory_listing"
+  entitlements    Json
+  isActive        Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  digitalPartners DigitalPartner[]
+  assignments     BusinessAssignment[]
+  subscriptions   BusinessSubscription[]
+}
+
+
+model DigitalPartner {
+  id                String                      @id @default(cuid())
+  businessProfileId String                      @unique
+  packageId         String
+  startDate         DateTime
+  expiryDate        DateTime?
+  paymentStatus     String
+  entitlementsUsed  Json?
+  isActive          Boolean                     @default(true)
+  renewalStatus     String?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  businessProfile   BusinessProfile             @relation(fields: [businessProfileId], references: [id])
+  package           DigitalPackage              @relation(fields: [packageId], references: [id])
+  publications      DigitalPartnerPublication[]
+}
+
+model BusinessSubscription {
+  id                   String    @id @default(cuid())
+  businessId           String
+  packageType          String    // "digital_partner" | "directory_listing" | "advertiser"
+  digitalPackageId     String?
+  printPackageId       String?
+  stripeSubscriptionId String    @unique
+  stripeCustomerId     String
+  priceCentsCharged    Int?
+  status               String    @default("incomplete")
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  business       Business        @relation(fields: [businessId], references: [id])
+  digitalPackage DigitalPackage? @relation(fields: [digitalPackageId], references: [id])
+  printPackage   PrintPackage?   @relation(fields: [printPackageId], references: [id])
+
+  @@index([businessId])
+  @@index([stripeSubscriptionId])
+}
+
+
+
+model DigitalPartnerPublication {
+  id               String         @id @default(cuid())
+  digitalPartnerId String
+  publicationId    String
+  digitalPartner   DigitalPartner @relation(fields: [digitalPartnerId], references: [id])
+  publication      Publication    @relation(fields: [publicationId], references: [id])
+
+  @@unique([digitalPartnerId, publicationId])
+}
+
+model PrintPackage {
+  id                   String                  @id @default(cuid())
+  name                 String                  @unique
+  description          String?
+  priceCents           Int?
+  discountedPriceCents Int?
+  entitlements         Json?
+  isActive             Boolean                 @default(true)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  bookings             PrintBooking[]
+  subscriptions        BusinessSubscription[]
+}
+
+
+
+
+
+model PrintBooking {
+  id              String        @id @default(cuid())
+  advertiserId    String
+  publicationId   String
+  packageId       String?
+  startDate       DateTime
+  expiryDate      DateTime?
+  paymentStatus   String        @default("pending")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  adSize          String?
+  artworkStatus   String        @default("awaiting_artwork")
+  artworkUrl      String?
+  issueId         String?
+  pageNumber      Int?
+  pageSpan        Int           @default(1)
+  position        String?
+  artworkFileName String?
+  artworkFileType String?
+  advertiser      Advertiser    @relation(fields: [advertiserId], references: [id])
+  issue           Issue?        @relation(fields: [issueId], references: [id])
+  package         PrintPackage? @relation(fields: [packageId], references: [id])
+  publication     Publication   @relation(fields: [publicationId], references: [id])
+
+  @@unique([advertiserId, publicationId, startDate])
+  @@index([issueId, pageNumber])
 }
 
 model User {
@@ -12,68 +189,85 @@ model User {
   email         String         @unique
   passwordHash  String
   role          String         @default("reader")
-  deviceToken   String?        
   createdAt     DateTime       @default(now())
+  deviceToken   String?
+  ghlContactId  String?
+  adUnlocks     AdUnlock[]
+  issueViews    IssueView[]
+  pageViews     PageView[]
   subscriptions Subscription[]
-  issueViews IssueView[]
-  pageViews  PageView[]
 }
 
 model Publication {
-  id                 String               @id @default(cuid())
-  title              String
-  slug               String               @unique
-  description        String?
-  coverImageUrl      String?
-  isPublished        Boolean              @default(false)
-  createdAt          DateTime             @default(now())
-  issues             Issue[]
-  subscriptions      Subscription[]
-  stripePriceId      String?
-  advertiserPayments AdvertiserPayment[]
+  id                         String                      @id @default(cuid())
+  title                      String
+  slug                       String                      @unique
+  description                String?
+  coverImageUrl              String?
+  isPublished                Boolean                     @default(false)
+  createdAt                  DateTime                    @default(now())
+  stripePriceId              String?
+  ads                        Ad[]
+  advertiserPayments         AdvertiserPayment[]
+  campaignLinks              CampaignLink[]
+  destinations               Destination[]
+  digitalPartnerPublications DigitalPartnerPublication[]
+  directoryListings          DirectoryListing[]
+  engagementEvents           EngagementEvent[]
+  enquiries                  Enquiry[]
+  featuredPlacements         FeaturedPlacement[]
+  issues                     Issue[]
+  offers                     Offer[]
+  printBookings              PrintBooking[]
+  subscriptions              Subscription[]
+  assignments                BusinessAssignment[]
 }
 
 model Issue {
-  id            String        @id @default(cuid())
-  publication   Publication   @relation(fields: [publicationId], references: [id])
-  publicationId String
-  issueNumber   Int
-  title         String
-  pdfUrl        String
-  coverImageUrl String?    
-  isPublished   Boolean       @default(false)  
-  publishedAt   DateTime      @default(now())
-  views         IssueView[]
-  overlays      PageOverlay[]
-  pageViews PageView[] 
+  id               String            @id @default(cuid())
+  publicationId    String
+  issueNumber      Int
+  title            String
+  pdfUrl           String
+  coverImageUrl    String?
+  isPublished      Boolean           @default(false)
+  publishedAt      DateTime          @default(now())
+  totalPages       Int?              @default(0)
+  pdfVersions      Json?             @default("[]")
+  engagementEvents EngagementEvent[]
+  publication      Publication       @relation(fields: [publicationId], references: [id])
+  views            IssueView[]
+  pageViews        PageView[]
+  printBookings    PrintBooking[]
 }
 
 model Subscription {
   id                   String      @id @default(cuid())
-  user                 User        @relation(fields: [userId], references: [id])
   userId               String
-  publication          Publication @relation(fields: [publicationId], references: [id])
   publicationId        String
   stripeSubscriptionId String?
   stripeCustomerId     String?
   status               String      @default("active")
   currentPeriodEnd     DateTime?
   createdAt            DateTime    @default(now())
+  publication          Publication @relation(fields: [publicationId], references: [id])
+  user                 User        @relation(fields: [userId], references: [id])
+
   @@unique([userId, publicationId])
 }
 
 model AdvertiserPayment {
-  id                   String      @id @default(cuid())
-  advertiserName       String
-  advertiserEmail      String
-  publication          Publication @relation(fields: [publicationId], references: [id])
-  publicationId        String
-  amountCents          Int
-  stripePaymentLinkId  String?
+  id                    String      @id @default(cuid())
+  publicationId         String
+  amountCents           Int
+  stripePaymentLinkId   String?
   stripePaymentIntentId String?
-  paymentUrl           String?
-  status               String      @default("pending")
-  createdAt            DateTime    @default(now())
+  status                String      @default("pending")
+  createdAt             DateTime    @default(now())
+  paymentUrl            String?
+  advertiserId          String
+  advertiser            Advertiser  @relation(fields: [advertiserId], references: [id])
+  publication           Publication @relation(fields: [publicationId], references: [id])
 }
 
 model PasswordResetToken {
@@ -89,40 +283,311 @@ model IssueView {
   userId    String
   issueId   String
   createdAt DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id])
-  issue Issue @relation(fields: [issueId], references: [id])
+  issue     Issue    @relation(fields: [issueId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }
 
-model PageOverlay {
-  id         String   @id @default(cuid())
-  issueId    String
-  issue      Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
-
-  pageNumber Int      
-
-  type       String   
-  url        String   
-  label      String?  
-  x          Float
-  y          Float
-  width      Float
-  height     Float
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([issueId, pageNumber])
-}
 model PageView {
   id         String   @id @default(cuid())
   userId     String
   issueId    String
   pageNumber Int
   createdAt  DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id])
-  issue Issue @relation(fields: [issueId], references: [id])
+  issue      Issue    @relation(fields: [issueId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
 
   @@index([issueId, pageNumber])
+}
+
+model Destination {
+  id                 String               @id @default(cuid())
+  publicationId      String
+  parentId           String?
+  name               String
+  level              String
+  slug               String
+  mainSponsorId      String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  parent             Destination?         @relation("DestinationHierarchy", fields: [parentId], references: [id])
+  children           Destination[]        @relation("DestinationHierarchy")
+  publication        Publication          @relation(fields: [publicationId], references: [id])
+  mainSponsor        Business?            @relation("DestinationMainSponsor", fields: [mainSponsorId], references: [id], onDelete: SetNull)
+  featuredPlacements FeaturedPlacement[]
+  offers             Offer[]
+  assignments        BusinessAssignment[]
+
+  @@unique([publicationId, slug])
+  @@index([parentId])
+  @@index([mainSponsorId])
+}
+
+model Offer {
+  id                 String              @id @default(cuid())
+  businessProfileId  String
+  publicationId      String
+  destinationId      String?
+  categoryId         String?
+  title              String
+  description        String?
+  imageUrl           String?
+  promoCode          String?
+  ctaText            String?
+  ctaUrl             String?
+  startDate          DateTime
+  expiryDate         DateTime
+  terms              String?
+  visibility         String              @default("public")
+  status             String              @default("draft")
+  isFeatured         Boolean             @default(false)
+  submittedBy        String?
+  approvedBy         String?
+  submittedAt        DateTime?
+  approvedAt         DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  events             EngagementEvent[]
+  featuredPlacements FeaturedPlacement[]
+  businessProfile    BusinessProfile     @relation(fields: [businessProfileId], references: [id])
+  category           Category?           @relation(fields: [categoryId], references: [id])
+  destination        Destination?        @relation(fields: [destinationId], references: [id])
+  publication        Publication         @relation(fields: [publicationId], references: [id])
+
+  @@index([businessProfileId, status])
+  @@index([expiryDate])
+}
+
+model BusinessAssignment {
+  id            String          @id @default(cuid())
+  businessId    String
+  publicationId String
+  destinationId String
+  categoryId    String
+  packageType   String          @default("directory") // "directory" | "digital_package"
+  packageId     String?
+  startDate     DateTime
+  expiryDate    DateTime?
+  status        String          @default("active")
+
+  business    Business       @relation(fields: [businessId], references: [id])
+  publication Publication    @relation(fields: [publicationId], references: [id])
+  destination Destination    @relation(fields: [destinationId], references: [id])
+  category    Category       @relation(fields: [categoryId], references: [id])
+  package     DigitalPackage? @relation(fields: [packageId], references: [id])
+
+  @@index([businessId])
+  @@unique([businessId, publicationId, destinationId, categoryId])
+}
+
+model DirectoryListingEdit {
+  id                 String           @id @default(cuid())
+  directoryListingId String
+  changes            Json
+  status             String           @default("pending")
+  submittedAt        DateTime         @default(now())
+  reviewedAt         DateTime?
+  reviewedBy         String?
+  rejectionReason    String?
+  submittedBy        String?
+  directoryListing   DirectoryListing @relation(fields: [directoryListingId], references: [id], onDelete: Cascade)
+
+  @@index([directoryListingId, status])
+}
+
+model DirectoryListing {
+  id           String                 @id @default(cuid())
+  businessId   String?
+  businessName String
+  location     String?
+  telephone    String?
+  website      String?
+  status       String                 @default("draft")
+  submittedBy  String?
+  approvedBy   String?
+  submittedAt  DateTime?
+  approvedAt   DateTime?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  business     Business?              @relation(fields: [businessId], references: [id])
+  publications Publication[]
+  edits        DirectoryListingEdit[]
+  events       EngagementEvent[]
+}
+
+
+model Category {
+  id                String               @id @default(cuid())
+  name              String               @unique
+  slug              String               @unique
+  isActive          Boolean              @default(true)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  offers            Offer[]
+  assignments       BusinessAssignment[]
+  businesses        Business[]
+}
+
+
+
+
+model EngagementEvent {
+  id                 String            @id @default(cuid())
+  eventType          String
+  businessProfileId  String?
+  offerId            String?
+  directoryListingId String?
+  publicationId      String?
+  issueId            String?
+  userId             String?
+  campaignLinkId     String?
+  metadata           Json?
+  createdAt          DateTime          @default(now())
+  businessProfile    BusinessProfile?  @relation(fields: [businessProfileId], references: [id])
+  campaignLink       CampaignLink?     @relation(fields: [campaignLinkId], references: [id])
+  directoryListing   DirectoryListing? @relation(fields: [directoryListingId], references: [id])
+  issue              Issue?            @relation(fields: [issueId], references: [id])
+  offer              Offer?            @relation(fields: [offerId], references: [id])
+  publication        Publication?      @relation(fields: [publicationId], references: [id])
+
+  @@index([businessProfileId, eventType, createdAt])
+  @@index([offerId, eventType])
+  @@index([directoryListingId, eventType])
+  @@index([campaignLinkId])
+}
+
+model Enquiry {
+  id                String          @id @default(cuid())
+  businessProfileId String
+  publicationId     String
+  name              String
+  email             String
+  phone             String?
+  message           String?
+  consentGiven      Boolean         @default(false)
+  status            String          @default("received")
+  ghlContactId      String?
+  ghlOpportunityId  String?
+  forwardedAt       DateTime?
+  createdAt         DateTime        @default(now())
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id])
+  publication       Publication     @relation(fields: [publicationId], references: [id])
+
+  @@index([businessProfileId, status])
+  @@index([ghlContactId])
+}
+
+model CampaignLink {
+  id             String            @id @default(cuid())
+  code           String            @unique
+  label          String
+  channel        String
+  destinationUrl String
+  publicationId  String?
+  isActive       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  publication    Publication?      @relation(fields: [publicationId], references: [id])
+  events         EngagementEvent[]
+}
+
+model FeaturedPlacement {
+  id                String           @id @default(cuid())
+  placementType     String
+  businessProfileId String?
+  offerId           String?
+  destinationId     String?
+  publicationId     String?
+  startDate         DateTime
+  endDate           DateTime?
+  priority          Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  businessName      String?
+  title             String?
+  businessProfile   BusinessProfile? @relation(fields: [businessProfileId], references: [id])
+  destination       Destination?     @relation(fields: [destinationId], references: [id])
+  offer             Offer?           @relation(fields: [offerId], references: [id])
+  publication       Publication?     @relation(fields: [publicationId], references: [id])
+
+  @@index([placementType, publicationId])
+}
+
+model Advertiser {
+  id                 String              @id @default(cuid())
+  businessId         String              @unique
+  advertiserName     String
+  telephone          String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  ads                Ad[]
+  business           Business            @relation(fields: [businessId], references: [id])
+  advertiserPayments AdvertiserPayment[]
+  printBookings      PrintBooking[]
+}
+
+model GhlSyncLog {
+  id           String   @id @default(cuid())
+  eventType    String
+  status       String   @default("pending")
+  recordLabel  String?
+  maraRecordId String?
+  ghlContactId String?
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actor       String
+  action      String
+  recordLabel String
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Ad {
+  id              String      @id @default(cuid())
+  advertiserId    String
+  publicationId   String
+  pdfUrl          String
+  pdfFileName     String?
+  pageNumber      Int         @default(1)
+  linkType        String
+  linkUrl         String
+  label           String?
+  priceCents      Int
+  status          String      @default("pending")
+  rejectionReason String?
+  isActive        Boolean     @default(true)
+  clickCount      Int         @default(0)
+  submittedAt     DateTime    @default(now())
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  advertiser      Advertiser  @relation(fields: [advertiserId], references: [id])
+  publication     Publication @relation(fields: [publicationId], references: [id])
+  unlocks         AdUnlock[]
+
+  @@index([advertiserId, status])
+  @@index([publicationId, status])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model AdUnlock {
+  id                    String   @id @default(cuid())
+  adId                  String
+  userId                String
+  amountCents           Int
+  stripePaymentIntentId String?
+  status                String   @default("pending")
+  unlockedAt            DateTime @default(now())
+  ad                    Ad       @relation(fields: [adId], references: [id])
+  user                  User     @relation(fields: [userId], references: [id])
+
+  @@unique([adId, userId])
+  @@index([userId])
 }

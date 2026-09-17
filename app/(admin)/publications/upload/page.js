@@ -13,9 +13,12 @@ export default function UploadIssuePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    fetch('/api/admin/publications').then(r => r.json()).then(setPublications)
-  }, [])
+
+useEffect(() => {
+  fetch('/api/admin/publications')
+    .then((r) => r.json())
+    .then((data) => setPublications(data.publications || []))
+}, [])
 
   async function handleSubmit(e) {
     e.preventDefault()

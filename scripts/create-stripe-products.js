@@ -6,21 +6,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 const prisma = new PrismaClient()
 
 const publications = [
-  { slug: 'the-skipper',  name: 'The Skipper',  amount: 999, interval: 'month' },
-  { slug: 'take-off',     name: 'Take Off',      amount: 2900, interval: 'year' },
-  { slug: 'go-west',      name: 'Go West',       amount: 2900, interval: 'year' },
-  { slug: 'the-business', name: 'The Business',  amount: 2900, interval: 'year' },
-  { slug: 'due-south',    name: 'Due South',     amount: 2900, interval: 'year' },
+  { slug: 'the-skipper',  name: 'The Skipper',  amount: 9900, interval: 'month' },
+  { slug: 'take-off',     name: 'Take Off',      amount: 5000, interval: 'year' },
+  { slug: 'go-west',      name: 'Go West',       amount: 5000, interval: 'year' },
+  { slug: 'the-business', name: 'The Business',  amount: 5000, interval: 'year' },
+  { slug: 'due-south',    name: 'Due South',     amount: 5000, interval: 'year' },
 ]
 
 for (const pub of publications) {
   const existing = await prisma.publication.findUnique({ where: { slug: pub.slug } })
   if (!existing) { console.log(`Skipping ${pub.slug} — not in DB`); continue }
-
-  if (pub.slug !== 'the-skipper') {
-    console.log(`Skipping ${pub.slug} — already seeded`)
-    continue
-  }
 
   const product = await stripe.products.create({
     name: `${pub.name} — ${pub.interval === 'month' ? 'Monthly' : 'Annual'} Subscription`,

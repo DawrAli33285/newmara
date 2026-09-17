@@ -11,6 +11,9 @@ const transporter = nodemailer.createTransport({
   },
 })
 
+const LOGO_URL =
+  'https://res.cloudinary.com/dbjwbveqn/image/upload/v1788288190/logo_sgvhbv.webp'
+
 export async function POST(req) {
   try {
     const { email } = await req.json()
@@ -25,7 +28,7 @@ export async function POST(req) {
 
     if (user) {
       const token = crypto.randomBytes(32).toString('hex')
-      const expiresAt = new Date(Date.now() + 1000 * 60 * 60) // 1 hour
+      const expiresAt = new Date(Date.now() + 1000 * 60 * 60) 
 
       await prisma.passwordResetToken.deleteMany({ where: { email } })
       await prisma.passwordResetToken.create({
@@ -43,6 +46,10 @@ export async function POST(req) {
           subject: 'Reset your Mara Media password',
           html: `
             <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
+              <div style="text-align:center; padding: 16px 0;">
+                <img src="${LOGO_URL}" alt="Mara Media" style="height:36px; width:auto;" />
+              </div>
+
               <h2 style="color: #1a3460;">Reset your password</h2>
               <p>Click the button below to reset your password. This link expires in 1 hour.</p>
               <a href="${resetUrl}"

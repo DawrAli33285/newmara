@@ -1,0 +1,826 @@
+    "use client";
+
+    import { useState, useRef, useEffect } from "react";
+    import HTMLFlipBook from "react-pageflip";
+    import { usePathname } from "next/navigation";
+
+    export default function AdFlipbookViewer({
+        pdfUrl,
+        title,
+        adId,
+        linkUrl,
+        linkType,
+        linkLabel,
+        pageNumber,
+        isSubscribed = true,
+        previewLimit = 4,
+        publicationSlug,
+      }) {
+    const [pages, setPages] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [loadingProgress, setLoadingProgress] = useState({
+        current: 0,
+        total: 0,
+    });
+    const pathname = usePathname();
+    const isOnSubscribePage = pathname?.startsWith("/subscribe/");
+    const [error, setError] = useState(null);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [zoom, setZoom] = useState(1);
+    const [dimensions, setDimensions] = useState({ width: 550, height: 778 });
+    const [isMobile, setIsMobile] = useState(false);
+    const [activeVideo, setActiveVideo] = useState(null);
+    const [showPaywall, setShowPaywall] = useState(false);
+    const flipBook = useRef(null);
+    const containerRef = useRef(null);
+    const pageViewTimeout = useRef(null);
+
+    const AD_LINK_OVERLAY = {
+        x: 0.08,
+        y: 0.78,
+        width: 0.84,
+        height: 0.14,
+      };
+
+
+      const targetPage = pageNumber || 1;
+
+    useEffect(() => {
+        function computeSize() {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const isFs = !!document.fullscreenElement;
+        const mobile = vw < 768;
+        setIsMobile(mobile);
+
+        const availWidth = vw - (mobile ? 12 : 24);
+        const availHeight = isFs ? vh - 40 : vh - (mobile ? 100 : 130);
+
+        const ratio = 1.414;
+
+        let pageWidth = mobile ? availWidth : Math.min(availWidth / 2, 800);
+        let pageHeight = pageWidth * ratio;
+
+        if (pageHeight > availHeight) {
+            pageHeight = availHeight;
+            pageWidth = pageHeight / ratio;
+        }
+
+        pageWidth = Math.max(pageWidth, mobile ? 260 : 300);
+        pageHeight = Math.max(pageHeight, mobile ? 368 : 424);
+
+        setDimensions({
+            width: Math.round(pageWidth),
+            height: Math.round(pageHeight),
+        });
+        }
+
+        computeSize();
+        window.addEventListener("resize", computeSize);
+        document.addEventListener("fullscreenchange", computeSize);
+        return () => {
+        window.removeEventListener("resize", computeSize);
+        document.removeEventListener("fullscreenchange", computeSize);
+        };
+    }, []);
+
+    useEffect(() => {
+        async function loadPDF() {
+        try {
+            if (!pdfUrl) {
+            setError("No PDF found for this ad.");
+            setLoading(false);
+            return;
+            }
+            const pdfjsLib = await import("pdfjs-dist");
+            pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+
+            const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise;
+            const numPages = pdf.numPages;
+            setLoadingProgress({ current: 0, total: numPages });
+
+            const collectedPages = [];
+
+            const RENDER_SCALE = 2.5;
+
+            for (let i = 1; i <= numPages; i++) {
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale: RENDER_SCALE });
+            const canvas = document.createElement("canvas");
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({
+                canvasContext: canvas.getContext("2d"),
+                viewport,
+            }).promise;
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+
+            collectedPages.push(dataUrl);
+            setLoadingProgress({ current: i, total: numPages });
+
+            if (i === 1) {
+                setLoading(false);
+                if (adId) {
+                fetch("/api/views/ad", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ adId }),
+                }).catch(() => {});
+
+                fetch("/api/views/ad/page", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ adId, pageNumber: 1 }),
+                }).catch(() => {});
+                }
+            }
+            }
+
+            setPages(collectedPages);
+        } catch (err) {
+            console.error("PDF load error:", err);
+            setError("Failed to load advertisement. Please try again.");
+            setLoading(false);
+        }
+        }
+        loadPDF();
+    }, [pdfUrl]);
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+        containerRef.current?.requestFullscreen();
+        setIsFullscreen(true);
+        } else {
+        document.exitFullscreen();
+        setIsFullscreen(false);
+        }
+    };
+
+    useEffect(() => {
+        const handler = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener("fullscreenchange", handler);
+        return () => document.removeEventListener("fullscreenchange", handler);
+    }, []);
+
+    useEffect(() => {
+        function handleKeyDown(e) {
+        if (e.key === "ArrowLeft") {
+            flipBook.current?.pageFlip().flipPrev();
+        } else if (e.key === "ArrowRight") {
+            attemptFlipNext();
+        } else if (e.key === "+" || e.key === "=") {
+            setZoom((z) => Math.min(z + 0.25, 3));
+        } else if (e.key === "-" || e.key === "_") {
+            setZoom((z) => Math.max(z - 0.25, 1));
+        } else if (e.key === "Escape") {
+            if (activeVideo) {
+            setActiveVideo(null);
+            } else if (showPaywall) {
+            setShowPaywall(false);
+            } else if (isFullscreen) {
+            document.exitFullscreen();
+            }
+        }
+        }
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [
+        isFullscreen,
+        activeVideo,
+        showPaywall,
+        isSubscribed,
+        previewLimit,
+        currentPage,
+    ]);
+
+    useEffect(() => {
+        return () => {
+        if (pageViewTimeout.current) clearTimeout(pageViewTimeout.current);
+        };
+    }, []);
+
+    function handleFlip(e) {
+        const newPage = e.data;
+
+        if (!isSubscribed && newPage >= previewLimit) {
+        setTimeout(() => {
+            flipBook.current?.pageFlip()?.turnToPage(previewLimit - 1);
+        }, 0);
+        setCurrentPage(previewLimit - 1);
+        setShowPaywall(true);
+        return;
+        }
+
+        setCurrentPage(newPage);
+
+        if (!adId) return;
+
+        if (pageViewTimeout.current) clearTimeout(pageViewTimeout.current);
+        pageViewTimeout.current = setTimeout(() => {
+        fetch("/api/views/ad/page", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ adId, pageNumber: newPage + 1 }),
+        }).catch(() => {});
+        }, 800);
+    }
+
+    function attemptFlipNext() {
+        if (!isSubscribed && currentPage + 1 >= previewLimit) {
+        setShowPaywall(true);
+        return;
+        }
+        flipBook.current?.pageFlip().flipNext();
+    }
+
+    function zoomIn() {
+        setZoom((z) => Math.min(z + 0.25, 3));
+    }
+    function zoomOut() {
+        setZoom((z) => Math.max(z - 0.25, 1));
+    }
+    function resetZoom() {
+        setZoom(1);
+    }
+    const pinchState = useRef({ initialDistance: 0, initialZoom: 1 });
+
+    function getTouchDistance(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function handleTouchStart(e) {
+        if (e.touches.length === 2) {
+        pinchState.current.initialDistance = getTouchDistance(e.touches);
+        pinchState.current.initialZoom = zoom;
+        }
+    }
+
+    function handleTouchMove(e) {
+        if (e.touches.length === 2 && pinchState.current.initialDistance > 0) {
+        e.preventDefault();
+        const dist = getTouchDistance(e.touches);
+        const scale = dist / pinchState.current.initialDistance;
+        const newZoom = Math.min(
+            3,
+            Math.max(1, pinchState.current.initialZoom * scale)
+        );
+        setZoom(newZoom);
+        }
+    }
+
+    function handleTouchEnd(e) {
+        if (e.touches.length < 2) {
+        pinchState.current.initialDistance = 0;
+        }
+    }
+
+    function getYouTubeId(url) {
+        const m = url.match(
+        /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]+)/
+        );
+        return m ? m[1] : null;
+    }
+
+    function getEmbedInfo(url) {
+        const ytId = getYouTubeId(url);
+        if (ytId)
+        return {
+            kind: "iframe",
+            src: `https://www.youtube.com/embed/${ytId}?autoplay=1&playsinline=1&rel=0`,
+        };
+
+        const vimeo = url.match(/vimeo\.com\/(\d+)/);
+        if (vimeo)
+        return {
+            kind: "iframe",
+            src: `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1`,
+        };
+
+        if (/\.mp4($|\?)/.test(url)) return { kind: "video", src: url };
+
+        return { kind: "iframe", src: url };
+    }
+  
+    function getAdLinkEmbedPreview() {
+        if (linkType !== "video" || !linkUrl) return null;
+
+        const ytId = getYouTubeId(linkUrl);
+        if (ytId)
+        return {
+            kind: "iframe",
+            src: `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&controls=0&modestbranding=1&playsinline=1`,
+        };
+
+        const vimeo = linkUrl.match(/vimeo\.com\/(\d+)/);
+        if (vimeo)
+        return {
+            kind: "iframe",
+            src: `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&muted=1&loop=1&background=1`,
+        };
+
+        if (/\.mp4($|\?)/.test(linkUrl)) return { kind: "video", src: linkUrl };
+
+        return null;
+    }
+
+    function handleAdLinkClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (adId) {
+        fetch(`/api/ads/${adId}/click`, { method: "POST" }).catch(() => {});
+        }
+
+        if (linkType === "video") {
+        setActiveVideo({ url: linkUrl });
+        } else {
+        window.open(linkUrl, "_blank", "noopener,noreferrer");
+        }
+    }
+
+    function stopFlipGesture(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+        e.nativeEvent.stopImmediatePropagation();
+        }
+    }
+
+    const totalPages = pages.length;
+
+    if (loading && pages.length === 0) {
+        return (
+        <div className="flex flex-col items-center justify-center h-96 gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="text-gray-500 text-sm">
+            {loadingProgress.total > 0
+                ? `Loading page ${loadingProgress.current} of ${loadingProgress.total}...`
+                : "Loading advertisement..."}
+            </p>
+        </div>
+        );
+    }
+
+    if (error) {
+        return (
+        <div className="flex items-center justify-center h-96">
+            <p className="text-red-500 text-sm">{error}</p>
+        </div>
+        );
+    }
+
+    const adLinkEmbed = getAdLinkEmbedPreview();
+
+    return (
+        <div
+        ref={containerRef}
+        className={`flex flex-col items-center ${
+            isFullscreen ? "bg-gray-900" : ""
+        }`}
+        style={{
+            minHeight: isFullscreen ? "100vh" : undefined,
+            paddingBottom: "90px",
+        }}
+        >
+        {loadingProgress.current < loadingProgress.total && (
+            <div className="w-64 mt-4">
+            <div className="bg-gray-200 rounded-full h-1">
+                <div
+                className="bg-blue-600 h-1 rounded-full transition-all duration-300"
+                style={{
+                    width: `${
+                    (loadingProgress.current / loadingProgress.total) * 100
+                    }%`,
+                }}
+                />
+            </div>
+            <p className="text-xs text-gray-400 text-center mt-1">
+                Loading page {loadingProgress.current} of {loadingProgress.total}
+            </p>
+            </div>
+        )}
+
+        <div
+            className="flex items-center justify-center w-full"
+            style={{
+            overflow: zoom > 1 ? "auto" : "visible",
+            maxWidth: "100%",
+            minHeight: isFullscreen ? "90vh" : "78vh",
+            touchAction: "pan-x pan-y",
+            }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >
+            <div
+            style={{
+                width: isMobile ? dimensions.width : dimensions.width * 2,
+                transform: `scale(${zoom})`,
+                transformOrigin: "center center",
+                transition: "transform 0.2s ease",
+            }}
+            >
+            <HTMLFlipBook
+                key={`${dimensions.width}x${dimensions.height}-${isMobile}`}
+                ref={flipBook}
+                width={dimensions.width}
+                height={dimensions.height}
+                size="fixed"
+                usePortrait={isMobile}
+                showCover={true}
+                drawShadow={true}
+                flippingTime={600}
+                startPage={0}
+                mobileScrollSupport={true}
+                clickEventForward={false}
+                useMouseEvents={true}
+                onFlip={handleFlip}
+                className="shadow-2xl"
+            >
+                {pages.map((src, i) => {
+                const pageNum = i + 1;
+                const showAdLinkHotspot = pageNum === targetPage && linkUrl;
+                return (
+                    <div
+                    key={i}
+                    style={{
+                        background: "#fff",
+                        width: "100%",
+                        height: "100%",
+                        position: "relative",
+                    }}
+                    >
+                    <img
+                        src={src}
+                        alt={`Page ${pageNum}`}
+                        style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        display: "block",
+                        }}
+                    />
+                    {showAdLinkHotspot && (
+                                                <button
+                                                type="button"
+                                                onClick={handleAdLinkClick}
+                                                onMouseDown={stopFlipGesture}
+                                                onMouseUp={stopFlipGesture}
+                                                onTouchStart={stopFlipGesture}
+                                                onTouchEnd={stopFlipGesture}
+                                                onPointerDown={stopFlipGesture}
+                                                onPointerUp={stopFlipGesture}
+                                                title={
+                                                    linkLabel ||
+                                                    (linkType === "video" ? "Watch video" : "Open link")
+                                                }
+                                                className="group"
+                        style={
+                            linkType === "video"
+                            ? {
+                                position: "absolute",
+                                left: `${AD_LINK_OVERLAY.x * 100}%`,
+                                top: `${AD_LINK_OVERLAY.y * 100}%`,
+                                width: `${AD_LINK_OVERLAY.width * 100}%`,
+                                height: `${AD_LINK_OVERLAY.height * 100}%`,
+                                cursor: "pointer",
+                                background: "#000",
+                                border: "none",
+                                padding: 0,
+                                zIndex: 5,
+                                overflow: "hidden",
+                                borderRadius: 8,
+                                }
+                            : {
+                                position: "absolute",
+                                left: `${AD_LINK_OVERLAY.x * 100}%`,
+                                top: `${AD_LINK_OVERLAY.y * 100}%`,
+                                width: `${AD_LINK_OVERLAY.width * 100}%`,
+                                height: `${AD_LINK_OVERLAY.height * 100}%`,
+                                cursor: "pointer",
+                                background: "transparent",
+                                border: "none",
+                                padding: 0,
+                                zIndex: 5,
+                                overflow: "hidden",
+                                borderRadius: 4,
+                                }
+                        }
+                        >
+                        {linkType === "video" && adLinkEmbed && (
+                            <>
+                            {adLinkEmbed.kind === "video" ? (
+                                <video
+                                src={adLinkEmbed.src}
+                                muted
+                                autoPlay
+                                loop
+                                playsInline
+                                style={{
+                                    position: "absolute",
+                                    inset: 0,
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    pointerEvents: "none",
+                                }}
+                                />
+                            ) : (
+                                <iframe
+                                src={adLinkEmbed.src}
+                                style={{
+                                    position: "absolute",
+                                    inset: 0,
+                                    width: "100%",
+                                    height: "100%",
+                                    border: 0,
+                                    pointerEvents: "none",
+                                }}
+                                allow="autoplay; muted; encrypted-media"
+                                tabIndex={-1}
+                                />
+                            )}
+                            <span
+                                style={{
+                                position: "absolute",
+                                inset: 0,
+                                zIndex: 1,
+                                }}
+                            />
+                            </>
+                        )}
+                        <span
+                            className="absolute inset-0 rounded transition"
+                            style={{
+                            boxShadow:
+                                linkType === "video"
+                                ? "0 0 0 2px rgba(255,255,255,0.35), inset 0 0 40px rgba(0,0,0,0.15)"
+                                : "0 0 0 2px rgba(37, 99, 235, 0.45)",
+                            pointerEvents: "none",
+                            zIndex: 2,
+                            }}
+                            onMouseEnter={(e) => {
+                            e.currentTarget.style.boxShadow =
+                                linkType === "video"
+                                ? "0 0 0 3px rgba(255,255,255,0.7), inset 0 0 40px rgba(0,0,0,0.25)"
+                                : "0 0 0 3px rgba(37, 99, 235, 0.85)";
+                            if (linkType !== "video") {
+                                e.currentTarget.style.background =
+                                "rgba(37, 99, 235, 0.1)";
+                            }
+                            }}
+                            onMouseLeave={(e) => {
+                            e.currentTarget.style.boxShadow =
+                                linkType === "video"
+                                ? "0 0 0 2px rgba(255,255,255,0.35), inset 0 0 40px rgba(0,0,0,0.15)"
+                                : "0 0 0 2px rgba(37, 99, 235, 0.45)";
+                            e.currentTarget.style.background = "transparent";
+                            }}
+                        />
+                        {linkType === "video" && (
+                            <span
+                            className="absolute flex items-center justify-center rounded-full bg-white/90 shadow-md"
+                            style={{
+                                width: 36,
+                                height: 36,
+                                top: "50%",
+                                left: "50%",
+                                transform: "translate(-50%, -50%)",
+                                pointerEvents: "none",
+                                zIndex: 2,
+                            }}
+                            >
+                            <span style={{ marginLeft: 2, fontSize: 14 }}>
+                                ▶
+                            </span>
+                            </span>
+                        )}
+                        {linkType !== "video" && (
+                            <span
+                            className="absolute flex items-center gap-1 bg-blue-600 text-white shadow-md"
+                            style={{
+                                top: "50%",
+                                left: "50%",
+                                transform: "translate(-50%, -50%)",
+                                padding: "3px 8px",
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                pointerEvents: "none",
+                                whiteSpace: "nowrap",
+                                zIndex: 2,
+                            }}
+                            >
+                            🔗 {linkLabel || "Link"}
+                            </span>
+                        )}
+                        </button>
+                    )}
+                    </div>
+                );
+                })}
+            </HTMLFlipBook>
+            </div>
+        </div>
+
+        {activeVideo && (
+            <div
+            className="fixed inset-0 flex items-center justify-center p-4"
+            style={{
+                zIndex: 9999,
+                background: "rgba(0,0,0,0.78)",
+                backdropFilter: "blur(2px)",
+            }}
+            onClick={() => setActiveVideo(null)}
+            >
+            <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                position: "relative",
+                width: "min(92vw, 760px)",
+                aspectRatio: "16 / 9",
+                background: "#000",
+                borderRadius: 14,
+                overflow: "hidden",
+                boxShadow: "0 24px 70px rgba(0,0,0,0.55)",
+                }}
+            >
+                <button
+                onClick={() => setActiveVideo(null)}
+                className="absolute flex items-center justify-center text-white hover:bg-black/80 transition"
+                style={{
+                    top: 10,
+                    right: 10,
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    background: "rgba(0,0,0,0.55)",
+                    zIndex: 2,
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: 16,
+                }}
+                title="Close"
+                >
+                ✕
+                </button>
+                {(() => {
+                const embed = getEmbedInfo(activeVideo.url);
+                return embed.kind === "video" ? (
+                    <video
+                    src={embed.src}
+                    controls
+                    autoPlay
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                    }}
+                    />
+                ) : (
+                    <iframe
+                    src={embed.src}
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "100%",
+                        height: "100%",
+                        border: 0,
+                    }}
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    allowFullScreen
+                    />
+                );
+                })()}
+            </div>
+            </div>
+        )}
+
+        {showPaywall && (
+            <div
+            className="fixed inset-0 flex items-center justify-center p-4"
+            style={{ zIndex: 9999, background: "rgba(0,0,0,0.78)", backdropFilter: "blur(2px)" }}
+            >
+            <div
+                className="relative bg-white rounded-2xl shadow-2xl text-center"
+                style={{ width: "min(92vw, 420px)", padding: "40px 28px 32px" }}
+            >
+                <button
+                onClick={() => setShowPaywall(false)}
+                className="absolute flex items-center justify-center text-gray-400 hover:text-gray-700 transition"
+                style={{
+                    top: 12,
+                    right: 12,
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    fontSize: 16,
+                }}
+                title="Close"
+                >
+                ✕
+                </button>
+
+                <div
+                className="mx-auto flex items-center justify-center rounded-full"
+                style={{ width: 56, height: 56, background: "rgba(47,125,27,0.1)", marginBottom: 16 }}
+                >
+                <span style={{ fontSize: 24 }}>🔒</span>
+                </div>
+
+                <h2 className="text-lg font-bold text-gray-900 mb-2">
+                You've reached the preview limit
+                </h2>
+                <p className="text-sm text-gray-500 mb-6">
+                You've read the first {previewLimit} pages for free. Subscribe to unlock the complete advertisement.
+                </p>
+
+                {!isOnSubscribePage && (
+                <>
+                    <a href={publicationSlug ? `/subscribe/${publicationSlug}` : "#"}
+                    className="flex items-center justify-center gap-2 w-full rounded-xl text-base font-semibold text-white transition hover:opacity-90"
+                    style={{ backgroundColor: "#2F7D1B", minHeight: 48, padding: "12px 20px" }}
+                    >
+                    Subscribe to Continue Reading
+                    </a>
+
+                    <button
+                    onClick={() => setShowPaywall(false)}
+                    className="mt-3 text-sm text-gray-400 hover:text-gray-600 transition"
+                    style={{ background: "none", border: "none", cursor: "pointer" }}
+                    >
+                    Keep browsing the preview
+                    </button>
+                </>
+                )}
+            </div>
+            </div>
+        )}
+
+        <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 sm:gap-3 bg-white rounded-full shadow-xl px-3 sm:px-6 py-1.5 sm:py-2 border border-gray-100 max-w-[95vw] overflow-x-auto">
+            <button
+            onClick={() => flipBook.current?.pageFlip().flipPrev()}
+            className="p-2 hover:bg-gray-100 rounded-full transition text-gray-700 text-xl shrink-0"
+            title="Previous page"
+            >
+            ‹
+            </button>
+            <span className="text-xs sm:text-sm text-gray-600 min-w-[70px] sm:min-w-[100px] text-center font-medium shrink-0">
+            {currentPage + 1} / {totalPages}
+            </span>
+            <button
+            onClick={attemptFlipNext}
+            className="p-2 hover:bg-gray-100 rounded-full transition text-gray-700 text-xl shrink-0"
+            title="Next page"
+            >
+            ›
+            </button>
+            <div className="w-px h-5 bg-gray-200 mx-1 shrink-0" />
+            <button
+            onClick={zoomOut}
+            className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm shrink-0 inline-flex"
+            title="Zoom out"
+            disabled={zoom <= 1}
+            >
+            −
+            </button>
+            <span className="text-xs text-gray-500 min-w-[36px] text-center shrink-0 inline-block">
+            {Math.round(zoom * 100)}%
+            </span>
+            <button
+            onClick={zoomIn}
+            className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm shrink-0 inline-flex"
+            title="Zoom in"
+            disabled={zoom >= 3}
+            >
+            +
+            </button>
+            {zoom !== 1 && (
+            <button
+                onClick={resetZoom}
+                className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-xs shrink-0 inline-flex"
+                title="Reset zoom"
+            >
+                ⟲
+            </button>
+            )}
+            <div className="w-px h-5 bg-gray-200 mx-1 shrink-0" />
+            <button
+            onClick={toggleFullscreen}
+            className="p-2 hover:bg-gray-100 rounded-full transition text-gray-600 text-sm shrink-0"
+            title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            >
+            {isFullscreen ? "✕" : "⛶"}
+            </button>
+        </div>
+        </div>
+    );
+    }

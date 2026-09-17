@@ -162,9 +162,10 @@ export default async function PublicationsGrid({
                       </p>
                     )}
 
+
                     {isSubscribed ? (
                       <Link
-                        href={`/read/${pub.slug}`}
+                        href={`/publication/${pub.slug}/view`}
                         className="
                           flex items-center justify-center gap-[20px] w-full
                           min-h-[44px] px-4 py-2.5 rounded-lg
@@ -179,7 +180,7 @@ export default async function PublicationsGrid({
                       </Link>
                     ) : (
                       <Link
-                        href={`/read/${pub.slug}`}
+                        href={`/publication/${pub.slug}/view`}
                         className="
                           flex items-center justify-center gap-[20px] w-full
                           min-h-[44px] px-4 py-2.5 rounded-lg

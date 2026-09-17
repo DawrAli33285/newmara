@@ -20,7 +20,7 @@ export async function GET() {
   const publications = await prisma.publication.findMany({
     orderBy: { title: 'asc' },
   })
-  return NextResponse.json(publications)
+  return NextResponse.json({ publications })
 }
 
 export async function POST(req) {

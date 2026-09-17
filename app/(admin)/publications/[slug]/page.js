@@ -19,12 +19,7 @@ export default async function PublicationDetailPage({ params }) {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <Link
-            href="/publications"
-            className="text-sm text-blue-600 hover:underline"
-          >
-            ← Back
-          </Link>
+          
           <h1 className="text-2xl font-bold text-gray-900 mt-1">
             {publication.title}
           </h1>
@@ -104,11 +99,12 @@ export default async function PublicationDetailPage({ params }) {
                       Preview Flipbook
                     </a>
                     <Link
-                      href={`/publications/${publication.slug}/issues/${issue.id}/overlays`}
-                      className="text-purple-600 hover:underline text-xs"
+                      href={`/publications/${publication.slug}/flatplan/${issue.id}`}
+                      className="text-xs text-[#2f7d1b] hover:underline"
                     >
-                      add sale pdf
+                      🗞️ Flat Plan
                     </Link>
+                   
                     <TogglePublished
                       issueId={issue.id}
                       isPublished={issue.isPublished}

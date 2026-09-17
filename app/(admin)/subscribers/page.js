@@ -12,19 +12,28 @@ export default async function SubscribersPage({ searchParams }) {
   const where = {
     ...(statusFilter !== 'all' && { status: statusFilter }),
     ...(search && {
-      user: { email: { contains: search, mode: 'insensitive' } },
+      business: {
+        OR: [
+          { businessName: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ],
+      },
     }),
   }
 
   const [subscribers, totalActive, totalExpired, totalCancelled, topIssues, topPublications, topPages, recentViews] = await Promise.all([
-    prisma.subscription.findMany({
+    prisma.businessSubscription.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      include: { user: true, publication: true },
+      include: {
+        business: true,
+        digitalPackage: true,
+        printPackage: true,
+      },
     }),
-    prisma.subscription.count({ where: { status: 'active' } }),
-    prisma.subscription.count({ where: { status: 'expired' } }),
-    prisma.subscription.count({ where: { status: 'cancelled' } }),
+    prisma.businessSubscription.count({ where: { status: 'active' } }),
+    prisma.businessSubscription.count({ where: { status: 'expired' } }),
+    prisma.businessSubscription.count({ where: { status: 'cancelled' } }),
     prisma.issueView.groupBy({
       by: ['issueId'],
       _count: { issueId: true },
@@ -90,7 +99,7 @@ export default async function SubscribersPage({ searchParams }) {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Subscribers</h1>
-      <p className="text-gray-500 text-sm mb-8">Manage all reader subscriptions</p>
+      <p className="text-gray-500 text-sm mb-8">Manage all business subscriptions</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
         <div className="rounded-xl p-6 bg-green-50 text-green-700">
@@ -111,7 +120,7 @@ export default async function SubscribersPage({ searchParams }) {
         <input
           name="search"
           defaultValue={search}
-          placeholder="Search by email..."
+          placeholder="Search by business name or email..."
           className="border border-gray-200 rounded-lg px-4 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <select
@@ -139,8 +148,8 @@ export default async function SubscribersPage({ searchParams }) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="text-left px-6 py-3 font-medium text-gray-600">Email</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-600">Publication</th>
+                <th className="text-left px-6 py-3 font-medium text-gray-600">Business</th>
+                <th className="text-left px-6 py-3 font-medium text-gray-600">Package</th>
                 <th className="text-left px-6 py-3 font-medium text-gray-600">Status</th>
                 <th className="text-left px-6 py-3 font-medium text-gray-600">Expires</th>
                 <th className="text-left px-6 py-3 font-medium text-gray-600">Joined</th>
@@ -149,8 +158,13 @@ export default async function SubscribersPage({ searchParams }) {
             <tbody className="divide-y divide-gray-100">
               {subscribers.map((sub) => (
                 <tr key={sub.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 font-medium">{sub.user.email}</td>
-                  <td className="px-6 py-3 text-gray-600">{sub.publication.title}</td>
+                  <td className="px-6 py-3 font-medium">
+                    <p className="text-gray-900">{sub.business.businessName}</p>
+                    <p className="text-xs text-gray-400">{sub.business.email}</p>
+                  </td>
+                  <td className="px-6 py-3 text-gray-600">
+  {sub.digitalPackage?.name || sub.printPackage?.name || '—'}
+</td>
                   <td className="px-6 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor(sub.status)}`}>
                       {sub.status}
@@ -187,7 +201,7 @@ export default async function SubscribersPage({ searchParams }) {
           </div>
           <div className="rounded-xl p-6 bg-indigo-50 text-indigo-700">
             <p className="text-3xl font-bold">{totalActive}</p>
-            <p className="text-sm font-medium mt-1 opacity-75">Active Readers</p>
+            <p className="text-sm font-medium mt-1 opacity-75">Active Subscriptions</p>
           </div>
         </div>
 
@@ -223,7 +237,7 @@ export default async function SubscribersPage({ searchParams }) {
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="font-semibold text-gray-900">Most Subscribed Publications</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Active subscribers per publication</p>
+              <p className="text-xs text-gray-400 mt-0.5">Active reader subscribers per publication</p>
             </div>
             {topPublicationsHydrated.length === 0 ? (
               <p className="text-gray-400 text-sm p-6">No subscription data yet.</p>

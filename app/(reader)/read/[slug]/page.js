@@ -26,29 +26,15 @@ export default async function ReadPage({ params, searchParams }) {
 
   if (!publication) redirect('/')
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  })
-
-  const awaitedSearch = await searchParams
-  const isAdmin = user?.role === 'admin'
-
-  let isSubscribed = isAdmin
-
-  if (!isAdmin) {
-    if (awaitedSearch?.subscribed === '1') {
-      await new Promise((r) => setTimeout(r, 2000))
-    }
-
-    const subscription = await prisma.subscription.findFirst({
-      where: {
-        userId: user?.id,
-        publicationId: publication.id,
-        status: 'active',
-      },
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
     })
-    isSubscribed = !!subscription
-  }
+  
+    const awaitedSearch = await searchParams
+  
+   
+    const isSubscribed = true
+
 
   if (publication.issues.length === 0) {
     return (

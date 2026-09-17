@@ -40,6 +40,23 @@ async function main() {
   }
   console.log("✅ 5 publications seeded");
 
+  const categories = [
+    { name: "Hospitality", slug: "hospitality" },
+    { name: "Food & Drink", slug: "food-drink" },
+    { name: "Things To Do", slug: "things-to-do" },
+    { name: "Retail", slug: "retail" },
+    { name: "Professional Services", slug: "professional-services" },
+  ];
+
+  for (const cat of categories) {
+    await prisma.category.upsert({
+      where: { slug: cat.slug },
+      update: {},
+      create: cat,
+    });
+  }
+  console.log("✅ 5 categories seeded");
+
   const passwordHash = await bcrypt.hash("Admin1234!", 12);
   await prisma.user.upsert({
     where: { email: "admin@maramedia.ie" },
