@@ -62,10 +62,12 @@ export default function PrintPackagesPage() {
       description: '',
       priceCents: '',
       discountedPriceCents: '',
+      billingInterval: 'monthly',
       isActive: true,
       entitlements: {},
     }
   }
+
 
   const loadPackages = useCallback(async () => {
     setLoading(true)
@@ -104,12 +106,15 @@ export default function PrintPackagesPage() {
       description: packageItem.description || '',
       priceCents: packageItem.priceCents ?? '',
       discountedPriceCents: packageItem.discountedPriceCents ?? '',
+      billingInterval: packageItem.billingInterval || 'monthly',
       isActive: packageItem.isActive,
       entitlements: { ...(packageItem.entitlements || {}) },
     })
     setError('')
     setShowForm(true)
   }
+
+
 
   function closeForm() {
     setShowForm(false)
@@ -146,9 +151,12 @@ export default function PrintPackagesPage() {
       priceCents: form.priceCents === '' ? null : parseInt(form.priceCents, 10),
       discountedPriceCents:
         form.discountedPriceCents === '' ? null : parseInt(form.discountedPriceCents, 10),
+      billingInterval: form.billingInterval || null,
       isActive: form.isActive,
       entitlements: { ...form.entitlements },
     }
+
+
 
     const url = editingId
       ? `/api/admin/print-packages/${editingId}`
@@ -269,6 +277,9 @@ export default function PrintPackagesPage() {
                           €{(packageItem.priceCents / 100).toFixed(2)}
                         </p>
                       )}
+                      <p className="mt-1 text-xs text-gray-500">
+  {packageItem.billingInterval || 'Billing period not set'}
+</p>
                       <span className="rounded-full bg-[#edf5df] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#527322]">
                         Discounted
                       </span>
@@ -307,9 +318,7 @@ export default function PrintPackagesPage() {
                       <span className="text-xs text-gray-400">No entitlements enabled.</span>
                     )}
                   </div>
-                  <p className="mt-2 text-xs text-gray-400">
-                    {packageItem._count?.bookings ?? 0} booking(s) using this package
-                  </p>
+                 
                 </div>
 
                 <div className="flex gap-2">
@@ -377,48 +386,62 @@ export default function PrintPackagesPage() {
                   />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-[#0b1830]">
-                      Price (€)
-                    </label>
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={form.priceCents === '' ? '' : form.priceCents / 100}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        if (value === '') {
-                          updateField('priceCents', '')
-                          return
-                        }
-                        const euros = parseFloat(value)
-                        if (Number.isNaN(euros) || euros <= 0) {
-                          updateField('priceCents', '')
-                          return
-                        }
-                        updateField('priceCents', Math.round(euros * 100))
-                      }}
-                      placeholder="e.g. 499.00"
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-[#668b2f]"
-                    />
-                  </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+  <div>
+    <label className="mb-2 block text-sm font-semibold text-[#0b1830]">
+      Price (€)
+    </label>
+    <input
+      type="number"
+      min="0.01"
+      step="0.01"
+      value={form.priceCents === '' ? '' : form.priceCents / 100}
+      onChange={(e) => {
+        const value = e.target.value
+        if (value === '') {
+          updateField('priceCents', '')
+          return
+        }
+        const euros = parseFloat(value)
+        if (Number.isNaN(euros) || euros <= 0) {
+          updateField('priceCents', '')
+          return
+        }
+        updateField('priceCents', Math.round(euros * 100))
+      }}
+      placeholder="e.g. 499.00"
+      className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-[#668b2f]"
+    />
+  </div>
 
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-[#0b1830]">
-                      Status
-                    </label>
-                    <select
-                      value={form.isActive ? 'Active' : 'Inactive'}
-                      onChange={(e) => updateField('isActive', e.target.value === 'Active')}
-                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#668b2f]"
-                    >
-                      <option>Active</option>
-                      <option>Inactive</option>
-                    </select>
-                  </div>
-                </div>
+  <div>
+    <label className="mb-2 block text-sm font-semibold text-[#0b1830]">
+      Billing interval
+    </label>
+    <select
+      value={form.billingInterval}
+      onChange={(e) => updateField('billingInterval', e.target.value)}
+      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#668b2f]"
+    >
+      <option value="monthly">monthly</option>
+      <option value="annual">annual</option>
+    </select>
+  </div>
+
+  <div>
+    <label className="mb-2 block text-sm font-semibold text-[#0b1830]">
+      Status
+    </label>
+    <select
+      value={form.isActive ? 'Active' : 'Inactive'}
+      onChange={(e) => updateField('isActive', e.target.value === 'Active')}
+      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#668b2f]"
+    >
+      <option>Active</option>
+      <option>Inactive</option>
+    </select>
+  </div>
+</div>
 
                 <div className="rounded-xl border border-[#dfe9cf] bg-[#f6faef] p-4">
                   <div className="flex items-center justify-between">

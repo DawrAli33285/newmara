@@ -106,11 +106,11 @@ if (!sessionData.business) {
         }
   
         setBusinessId(sessionData.business.id)
-        setBusinessName(sessionData.business.businessName)
-        setPackages(packagesData.packages || [])
-        setPrintPackages((printPackagesData.printPackages || []).filter((pkg) => pkg.isActive))
-        setDestinations(destinationsData.destinations || [])
-        setPublications(publicationsData.publications || [])
+setBusinessName(sessionData.business.businessName)
+setPackages(packagesData.packages || [])
+setPrintPackages((printPackagesData.printPackages || []).filter((pkg) => pkg.isActive))
+setDestinations(destinationsData.destinations || [])
+setPublications((publicationsData.publications || []).filter((pub) => pub.isPublished))
         if (subStatusData.hasSubscription) {
           setExistingSubscription(subStatusData.subscription)
           setSelected(subStatusData.subscription.packageType)

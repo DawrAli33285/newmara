@@ -178,10 +178,8 @@ export async function POST(req) {
 
     const chargeCents = pkg.discountedPriceCents ?? pkg.priceCents
 
-    // PrintPackage has no billingInterval field — default print subscriptions to monthly.
-    const stripeInterval = isPrintPackage
-      ? 'month'
-      : pkg.billingInterval === 'annual' ? 'year' : 'month'
+    
+  const stripeInterval = pkg.billingInterval === 'annual' ? 'year' : 'month'
 
     let stripeCustomerId = business.stripeCustomerId
     if (!stripeCustomerId) {

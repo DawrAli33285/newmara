@@ -144,6 +144,7 @@ model PrintPackage {
   description          String?
   priceCents           Int?
   discountedPriceCents Int?
+  billingInterval      String?
   entitlements         Json?
   isActive             Boolean                 @default(true)
   createdAt            DateTime                @default(now())
