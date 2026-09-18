@@ -56,8 +56,8 @@ export default function AdEditForm({ publicationSlug, ad, allowsVideo = false, a
     }
 
 
-    const priceNumber = Number(price)
-    if (!price || Number.isNaN(priceNumber) || priceNumber <= 0) {
+    const priceNumber = 0
+    if (!price || Number.isNaN(priceNumber)) {
       setSaveError('Enter a valid price.')
       return
     }
@@ -80,7 +80,7 @@ export default function AdEditForm({ publicationSlug, ad, allowsVideo = false, a
 
       setSaved(true)
       setPdfFile(null)
-      router.refresh()
+      router.back()
     } catch (err) {
       setSaveError(err.message)
     } finally {

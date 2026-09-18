@@ -151,7 +151,7 @@ export default async function SubscribersPage({ searchParams }) {
                 <th className="text-left px-6 py-3 font-medium text-gray-600">Business</th>
                 <th className="text-left px-6 py-3 font-medium text-gray-600">Package</th>
                 <th className="text-left px-6 py-3 font-medium text-gray-600">Status</th>
-                <th className="text-left px-6 py-3 font-medium text-gray-600">Expires</th>
+                
                 <th className="text-left px-6 py-3 font-medium text-gray-600">Joined</th>
               </tr>
             </thead>
@@ -170,11 +170,7 @@ export default async function SubscribersPage({ searchParams }) {
                       {sub.status}
                     </span>
                   </td>
-                  <td className="px-6 py-3 text-gray-500">
-                    {sub.currentPeriodEnd
-                      ? new Date(sub.currentPeriodEnd).toLocaleDateString('en-IE')
-                      : '—'}
-                  </td>
+                
                   <td className="px-6 py-3 text-gray-500">
                     {new Date(sub.createdAt).toLocaleDateString('en-IE')}
                   </td>

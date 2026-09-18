@@ -62,7 +62,7 @@ export async function PATCH(request, { params }) {
   const linkType = formData.get("linkType");
   const linkUrl = formData.get("linkUrl");
   const label = formData.get("label");
-  const priceCents = Number(formData.get("priceCents"));
+  const priceCents = 0
 
   if (linkType === "video" && !ctx.allowsVideo) {
     return NextResponse.json(
@@ -79,15 +79,13 @@ export async function PATCH(request, { params }) {
   if (!linkUrl || !linkUrl.trim()) {
     return NextResponse.json({ error: "Link URL is required" }, { status: 400 });
   }
-  if (!priceCents || priceCents <= 0) {
-    return NextResponse.json({ error: "A valid price is required" }, { status: 400 });
-  }
+
 
   const data = {
     linkType,
     linkUrl: linkUrl.trim(),
     label: label ? label.trim() : null,
-    priceCents,
+    priceCents:0,
     status: "pending",
     rejectionReason: null,
     reviewedAt: null,

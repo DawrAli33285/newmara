@@ -62,7 +62,7 @@ export async function POST(request, { params }) {
   const linkType = formData.get("linkType");
   const linkUrl = formData.get("linkUrl");
   const label = formData.get("label") || null;
-  const priceCents = Number(formData.get("priceCents"));
+  const priceCents = 0
 
   if (!pdf || typeof pdf === "string") {
     return NextResponse.json({ error: "PDF is required" }, { status: 400 });
@@ -70,9 +70,7 @@ export async function POST(request, { params }) {
   if (!linkUrl || !linkUrl.trim()) {
     return NextResponse.json({ error: "Link URL is required" }, { status: 400 });
   }
-  if (!priceCents || priceCents <= 0) {
-    return NextResponse.json({ error: "A valid price is required" }, { status: 400 });
-  }
+ 
 
   const uploadDir = path.join(process.cwd(), "public", "uploads", "ads");
   await mkdir(uploadDir, { recursive: true });
@@ -90,7 +88,7 @@ export async function POST(request, { params }) {
       linkType,
       linkUrl: linkUrl.trim(),
       label,
-      priceCents,
+      priceCents:0,
       status: "pending",
     },
   });

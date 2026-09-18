@@ -108,7 +108,7 @@ function AdvertiserDrawer({ advertiser, onClose, onSave, onDelete, saving, delet
           </Field>
         </div>
 
-        <p className="mt-8 text-xs font-bold uppercase tracking-widest" style={{ color: '#2F7D1B' }}>
+        {/* <p className="mt-8 text-xs font-bold uppercase tracking-widest" style={{ color: '#2F7D1B' }}>
           Print bookings ({advertiser.printBookings?.length || 0})
         </p>
         <div className="mt-3 space-y-2">
@@ -135,7 +135,7 @@ function AdvertiserDrawer({ advertiser, onClose, onSave, onDelete, saving, delet
               </div>
             ))
           )}
-        </div>
+        </div> */}
 
         <div className="mt-8 space-y-2">
           <button
