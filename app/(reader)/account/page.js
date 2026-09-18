@@ -47,9 +47,12 @@ export default async function AccountPage() {
         </div>
 
         <div className="mb-8">
-          <h1 className="text-md font-bold text-[#657084] uppercase tracking-widest mb-4">My Library</h1>
-          <h2 className='text-sm font-bold text-black uppercase tracking-widest mb-4'>Access all your subscribed publications in one place.</h2>
-          {activeSubscriptions.length === 0 ? (
+        <a href="/browse" className="inline-block bg-[#2F7D1B] hover:bg-[#256516] text-white font-semibold px-6 py-3 rounded-xl text-sm transition">
+                Browse Publications
+              </a>
+          {/* <h1 className="text-md font-bold text-[#657084] uppercase tracking-widest mb-4">My Library</h1>
+          <h2 className='text-sm font-bold text-black uppercase tracking-widest mb-4'>Access all your subscribed publications in one place.</h2> */}
+          {/* {activeSubscriptions.length === 0 ? (
             <div className="bg-white border border-[#D9E0E7] rounded-2xl p-10 text-center">
               <div className="w-12 h-12 rounded-full bg-[#EFF5EE] flex items-center justify-center mx-auto mb-4">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F7D1B" strokeWidth="2">
@@ -93,7 +96,7 @@ export default async function AccountPage() {
                 )
               })}
             </div>
-          )}
+          )} */}
         </div>
 
         {user.subscriptions.length > 0 && (
