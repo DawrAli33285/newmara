@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import logo from '@/public/logo.png'
 import Image from 'next/image'
+import { signOut } from "next-auth/react";
 
 const NAV_BY_PLAN = {
   digital_partner: [
@@ -78,9 +79,12 @@ function SidebarContent({ navigation, pathname, onNavigate }) {
 
       <div className="border-t border-blue-800 p-4">
         <p className="truncate text-xs text-blue-200">business@example.com</p>
-        <Link href="/business/login" className="mt-3 block text-xs text-red-200 hover:text-white">
-          Sign out
-        </Link>
+        <button
+  onClick={() => signOut({ callbackUrl: "/business/login" })}
+  className="mt-3 cursor-pointer block text-xs text-red-200 hover:text-white"
+>
+  Sign out
+</button>
       </div>
     </>
   );

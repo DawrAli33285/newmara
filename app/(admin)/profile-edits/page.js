@@ -9,14 +9,42 @@ const STATUS_TABS = [
   { key: "denied",   label: "Rejected" },
 ];
 
+// function ChangesDiff({ changes }) {
+//   if (!changes || Object.keys(changes).length === 0) {
+//     return <p className="text-xs text-gray-400">No changes recorded.</p>;
+//   }
+
+//   return (
+//     <div className="space-y-2">
+//       {Object.entries(changes).map(([field, value]) => (
+//         <div key={field} className="rounded-lg bg-[#f7f8fa] px-3 py-2">
+//           <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+//             {field}
+//           </p>
+//           <p className="text-xs text-[#0b1830] break-words">
+//             {Array.isArray(value)
+//               ? value.join(", ") || "—"
+//               : typeof value === "object"
+//               ? JSON.stringify(value)
+//               : String(value) || "—"}
+//           </p>
+//         </div>
+//       ))}
+//     </div>
+//   );
+// }
 function ChangesDiff({ changes }) {
-  if (!changes || Object.keys(changes).length === 0) {
+  const entries = Object.entries(changes || {}).filter(
+    ([field, value]) => value !== "" && value !== null && field !== "category"
+  );
+
+  if (entries.length === 0) {
     return <p className="text-xs text-gray-400">No changes recorded.</p>;
   }
 
   return (
     <div className="space-y-2">
-      {Object.entries(changes).map(([field, value]) => (
+      {entries.map(([field, value]) => (
         <div key={field} className="rounded-lg bg-[#f7f8fa] px-3 py-2">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
             {field}
