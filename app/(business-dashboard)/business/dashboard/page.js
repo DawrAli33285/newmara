@@ -120,6 +120,10 @@ export default async function BusinessDashboardPage() {
     redirect("/business/login");
   }
 
+  if (data.isSubscriptionActive === false) {
+    redirect("/business/select-plan");
+  }
+
   if (!data.hasDigitalPartner) {
     if (data.hasAdvertiser) {
       redirect("/business/advertiserdashboard");
@@ -365,9 +369,7 @@ export default async function BusinessDashboardPage() {
               How readers find you
             </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Last 6 days
-            </p>
+           
           </div>
 
          
@@ -406,7 +408,7 @@ export default async function BusinessDashboardPage() {
           </div>
 
    
-        <div className="grid">
+        {/* <div className="grid">
           
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h3 className="font-bold text-[#0b1830]">Action breakdown</h3>
@@ -440,7 +442,7 @@ export default async function BusinessDashboardPage() {
               ))}
             </div>
           </div>
-        </div>
+        </div> */}
 
        
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const STATUS_COLORS = {
   draft:        { bg: "bg-gray-100",    text: "text-gray-500"    },
@@ -306,6 +308,7 @@ function OfferModal({ offer, onClose, onSaved }) {
 
 export default function OffersPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [offers,     setOffers]     = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [modalOpen,  setModalOpen]  = useState(false);
@@ -320,9 +323,23 @@ export default function OffersPage() {
   }, []);
 
   useEffect(() => {
+    async function checkSubscription() {
+      try {
+        const res = await fetch("/api/business/plan-status");
+        const data = await res.json();
+        if (data.isSubscriptionActive === false) {
+          router.replace("/business/select-plan");
+        }
+      } catch {
+        
+      }
+    }
+    checkSubscription();
+  }, [router]);
+
+  useEffect(() => {
     if (status !== "loading") loadOffers();
   }, [status, loadOffers]);
-
   function openCreate() {
     setEditOffer(null);
     setModalOpen(true);

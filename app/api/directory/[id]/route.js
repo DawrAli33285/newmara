@@ -123,10 +123,21 @@ export async function GET(req, { params }) {
 
     let entitlements = null
     if (listing.businessId) {
+      const allAssignments = await prisma.businessAssignment.findMany({
+        where: { businessId: listing.businessId },
+        select: {
+          id: true,
+          packageType: true,
+          status: true,
+          packageId: true,
+          startDate: true,
+        },
+      })
+     
       const assignment = await prisma.businessAssignment.findFirst({
         where: {
           businessId: listing.businessId,
-          packageType: 'directory_listing',
+          packageType: 'directory',
           status: 'active',
           packageId: { not: null },
         },
@@ -135,6 +146,7 @@ export async function GET(req, { params }) {
           package: { select: { entitlements: true } },
         },
       })
+     
       entitlements = assignment?.package?.entitlements ?? null
     }
 

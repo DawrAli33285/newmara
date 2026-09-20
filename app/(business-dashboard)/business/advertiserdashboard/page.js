@@ -11,6 +11,14 @@ async function getAdvertiserData() {
     return null;
   }
 
+  const latestSubscription = await prisma.businessSubscription.findFirst({
+    where: { businessId: session.user.id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const isSubscriptionActive =
+    latestSubscription && ["active", "trialing"].includes(latestSubscription.status);
+
   const business = await prisma.business.findUnique({
     where: { id: session.user.id },
     select: {
@@ -25,7 +33,7 @@ async function getAdvertiserData() {
     },
   });
 
-  if (!business?.advertiser) return { business, advertiser: null };
+  if (!business?.advertiser) return { business, advertiser: null, isSubscriptionActive };
 
   const ads = await prisma.ad.findMany({
     where: { advertiserId: business.advertiser.id },
@@ -35,7 +43,7 @@ async function getAdvertiserData() {
     orderBy: { createdAt: "desc" },
   });
 
-  return { business, advertiser: business.advertiser, ads };
+  return { business, advertiser: business.advertiser, ads, isSubscriptionActive };
 }
 
 const STATUS_LABEL = {
@@ -54,7 +62,11 @@ export default async function AdvertiserDashboardPage() {
   const data = await getAdvertiserData();
   if (!data) redirect("/business/login");
 
-  const { business, advertiser, ads = [] } = data;
+  const { business, advertiser, ads = [], isSubscriptionActive } = data;
+
+  if (!isSubscriptionActive) {
+    redirect("/business/select-plan");
+  }
 
   if (!advertiser) {
     const digitalPartner = business?.businessProfile?.digitalPartner;

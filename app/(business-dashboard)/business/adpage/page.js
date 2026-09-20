@@ -12,11 +12,22 @@ export default async function BusinessAdPage() {
     redirect("/login");
   }
 
+  const latestSubscription = await prisma.businessSubscription.findFirst({
+    where: { businessId: session.user.id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const isSubscriptionActive =
+    latestSubscription && ["active", "trialing"].includes(latestSubscription.status);
+
+  if (!isSubscriptionActive) {
+    redirect("/business/select-plan");
+  }
+
   const advertiser = await prisma.advertiser.findUnique({
     where: { businessId: session.user.id },
     select: { id: true },
   });
-
   const publications = await prisma.publication.findMany({
     orderBy: { title: "asc" },
     include: advertiser

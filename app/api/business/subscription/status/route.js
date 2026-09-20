@@ -18,7 +18,7 @@ export async function GET() {
         status: { in: ['active', 'trialing', 'incomplete', 'past_due'] },
       },
       orderBy: { createdAt: 'desc' },
-      include: { package: true },
+      include: { digitalPackage: true, printPackage: true },
     })
     console.log("HAS SUBSCRUTIPION")
     console.log(subscription)

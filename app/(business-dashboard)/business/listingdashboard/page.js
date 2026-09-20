@@ -26,6 +26,15 @@ async function getListingsData() {
 
   if (!business) return null;
 
+  const latestSubscription = await prisma.businessSubscription.findFirst({
+    where: { businessId: session.user.id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const isSubscriptionActive =
+    latestSubscription && ["active", "trialing"].includes(latestSubscription.status);
+    
+
   const listings = await prisma.directoryListing.findMany({
     where: { businessId: session.user.id },
     include: {

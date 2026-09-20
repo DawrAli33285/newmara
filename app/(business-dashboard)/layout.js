@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import logo from '@/public/logo.png'
 import Image from 'next/image'
 import { signOut } from "next-auth/react";
@@ -92,8 +92,10 @@ function SidebarContent({ navigation, pathname, onNavigate }) {
 
 export default function BusinessDashboardLayout({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [navigation, setNavigation] = useState(DEFAULT_NAV);
   const [mobileOpen, setMobileOpen] = useState(false);
+
 
   useEffect(() => {
     async function loadPlan() {
@@ -101,12 +103,30 @@ export default function BusinessDashboardLayout({ children }) {
         const res = await fetch("/api/business/plan-status");
         const data = await res.json();
         setNavigation(NAV_BY_PLAN[data.planType] || DEFAULT_NAV);
+
+        if (data.isSubscriptionActive === false) {
+          router.replace("/business/select-plan");
+        }
       } catch {
         setNavigation(DEFAULT_NAV);
       }
     }
     loadPlan();
-  }, []);
+  }, [router]);
+
+
+  // useEffect(() => {
+  //   async function loadPlan() {
+  //     try {
+  //       const res = await fetch("/api/business/plan-status");
+  //       const data = await res.json();
+  //       setNavigation(NAV_BY_PLAN[data.planType] || DEFAULT_NAV);
+  //     } catch {
+  //       setNavigation(DEFAULT_NAV);
+  //     }
+  //   }
+  //   loadPlan();
+  // }, []);
 
   return (
     <div className="min-h-screen bg-[#f6f8fa] text-[#0b1830]">

@@ -96,16 +96,14 @@ const [printPackages, setPrintPackages] = useState([])
 console.log('destinations data', destinationsData)
 
 if (!sessionData.business) {
-          router.replace('/business/login')
-          return
-        }
-  
-        if (planStatusData.hasPlan) {
-          router.replace('/business/dashboard')
-          return
-        }
-  
-        setBusinessId(sessionData.business.id)
+  router.replace('/business/login')
+  return
+}
+if (planStatusData.hasPlan && subStatusData.hasSubscription) {
+  router.replace('/business/dashboard')
+  return
+}
+setBusinessId(sessionData.business.id)
 setBusinessName(sessionData.business.businessName)
 setPackages(packagesData.packages || [])
 setPrintPackages((printPackagesData.printPackages || []).filter((pkg) => pkg.isActive))
@@ -116,6 +114,28 @@ setPublications((publicationsData.publications || []).filter((pub) => pub.isPubl
           setSelected(subStatusData.subscription.packageType)
           setPackageId(subStatusData.subscription.packageId)
           setHasPaid(true)
+        }  else if (sessionData.business.existingPackageType) {
+          setExistingSubscription({ packageType: sessionData.business.existingPackageType, packageId: null })
+          setSelected(sessionData.business.existingPackageType)
+
+          const existingPubIds = sessionData.business.existingPublicationIds || []
+          const existingDestIds = sessionData.business.existingDestinationIds || []
+          setPublicationIds(existingPubIds)
+          setDestinationIds(existingDestIds)
+
+          console.log('[select-plan] pre-filling from existing business:', {
+            existingPubIds,
+            existingDestIds,
+          })
+
+          if (existingDestIds.length > 0) {
+            const destList = destinationsData.destinations || []
+            const firstDest = destList.find((d) => d.id === existingDestIds[0])
+            console.log('[select-plan] resolved region for pre-filled destination:', firstDest)
+            if (firstDest) setRegionId(firstDest.parentId)
+          }
+
+          setHasPaid(false)
         }
       } catch (err) {
         console.error('LOAD ERROR:', err)
@@ -148,9 +168,11 @@ const filteredPackages =
       )
 
 
-  function isOptionLocked(optId) {
-    return existingSubscription && existingSubscription.packageType !== optId
-  }
+      function isOptionLocked(optId) {
+        return existingSubscription && existingSubscription.packageType !== optId
+      }
+    
+      const isPickerLocked = Boolean(existingSubscription)
   
 
 
@@ -299,15 +321,17 @@ const filteredPackages =
         if (locked) return
 
         setSelected(opt.id)
-        setRegionId(null)
-        setDestinationIds([])
-        setPublicationIds(publications.length === 1 ? [publications[0].id] : [])
         setError('')
-      
+
         if (existingSubscription && existingSubscription.packageType === opt.id) {
+          
           setPackageId(existingSubscription.packageId)
           setHasPaid(true)
         } else {
+          
+          setRegionId(null)
+          setDestinationIds([])
+          setPublicationIds(publications.length === 1 ? [publications[0].id] : [])
           setPackageId(null)
           setHasPaid(false)
         }
@@ -363,19 +387,25 @@ const filteredPackages =
               {publications.length === 0 && (
                 <p className="text-sm text-slate-500">No publications are available right now.</p>
               )}
-              {publications.map((pub) => (
-                <button
-                  key={pub.id}
-                  type="button"
-                  onClick={() => togglePublication(pub.id)}
-                  className={`rounded-lg border px-4 py-3 text-left text-sm font-normal transition
-                    ${publicationIds.includes(pub.id)
-                      ? 'border-[#2f7d1b] bg-[#edf6e5] text-[#0b1830]'
-                      : 'border-slate-200 text-slate-600 hover:border-[#2f7d1b]/40'}`}
-                >
-                  <span className="font-bold text-[#0b1830]">{pub.title}</span>
-                </button>
-              ))}
+                                     {publications.map((pub) => {
+                const locked = isPickerLocked
+                return (
+                  <button
+                    key={pub.id}
+                    type="button"
+                    disabled={locked}
+                    onClick={() => { if (!locked) togglePublication(pub.id) }}
+                    className={`rounded-lg border px-4 py-3 text-left text-sm font-normal transition
+                      ${locked
+                        ? 'cursor-not-allowed border-slate-100 bg-slate-50 opacity-50'
+                        : publicationIds.includes(pub.id)
+                          ? 'border-[#2f7d1b] bg-[#edf6e5] text-[#0b1830]'
+                          : 'border-slate-200 text-slate-600 hover:border-[#2f7d1b]/40'}`}
+                  >
+                    <span className="font-bold text-[#0b1830]">{pub.title}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
@@ -394,11 +424,12 @@ const filteredPackages =
         <label className="text-xs font-bold text-slate-500">Region</label>
         <select
           value={regionId || ''}
+          disabled={isPickerLocked}
           onChange={(e) => {
             setRegionId(e.target.value || null)
             setDestinationIds([])
           }}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-50"
         >
           <option value="">Select a region…</option>
           {regions.map((r) => (
@@ -418,25 +449,32 @@ const filteredPackages =
   {regionId && destinationOptions.length === 0 && (
     <p className="mt-1 text-sm text-slate-500">No destinations in this region yet.</p>
   )}
-  {regionId && destinationOptions.length > 0 && (
+   {regionId && destinationOptions.length > 0 && (
     <div className="mt-1 flex flex-wrap gap-2">
-      {destinationOptions.map((d) => (
-        <button
-          key={d.id}
-          type="button"
-          onClick={() =>
-            setDestinationIds((prev) =>
-              prev.includes(d.id) ? prev.filter((id) => id !== d.id) : [...prev, d.id]
-            )
-          }
-          className={`rounded-lg border px-3 py-2 text-left text-sm font-normal transition
-            ${destinationIds.includes(d.id)
-              ? 'border-[#2f7d1b] bg-[#edf6e5] text-[#0b1830]'
-              : 'border-slate-200 text-slate-600 hover:border-[#2f7d1b]/40'}`}
-        >
-          {d.name}
-        </button>
-      ))}
+      {destinationOptions.map((d) => {
+        const locked = isPickerLocked
+        return (
+          <button
+            key={d.id}
+            type="button"
+            disabled={locked}
+            onClick={() => {
+              if (locked) return
+              setDestinationIds((prev) =>
+                prev.includes(d.id) ? prev.filter((id) => id !== d.id) : [...prev, d.id]
+              )
+            }}
+            className={`rounded-lg border px-3 py-2 text-left text-sm font-normal transition
+              ${locked
+                ? 'cursor-not-allowed border-slate-100 bg-slate-50 opacity-50'
+                : destinationIds.includes(d.id)
+                  ? 'border-[#2f7d1b] bg-[#edf6e5] text-[#0b1830]'
+                  : 'border-slate-200 text-slate-600 hover:border-[#2f7d1b]/40'}`}
+          >
+            {d.name}
+          </button>
+        )
+      })}
     </div>
   )}
 </div>

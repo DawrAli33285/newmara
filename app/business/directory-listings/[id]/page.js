@@ -4,29 +4,17 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
-const CATEGORIES = [
-  "Eat & Drink",
-  "Accommodation",
-  "Taxi & Transport",
-  "Things To Do",
-  "Shopping",
-  "Beauty",
-  "Golf",
-  "Visitor Services",
-  "Professional Services",
-];
-
 export default function EditDirectoryListingPage() {
   const { id } = useParams();
   const router = useRouter();
 
   const [listing, setListing] = useState(null);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
-
   const [form, setForm] = useState({
     businessName: "",
     category: "",
@@ -45,6 +33,7 @@ export default function EditDirectoryListingPage() {
       }
       const data = await res.json();
       setListing(data.listing);
+      setCategories(data.categories || []);
       setForm({
         businessName: data.listing.businessName || "",
         category: data.listing.category || "",
@@ -56,6 +45,7 @@ export default function EditDirectoryListingPage() {
     }
     if (id) load();
   }, [id]);
+
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -156,8 +146,9 @@ export default function EditDirectoryListingPage() {
             onChange={(e) => update("category", e.target.value)}
             className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-[#2f7d1b] focus:outline-none"
           >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+            <option value="" disabled>Select a category…</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.name}>{c.name}</option>
             ))}
           </select>
         </div>

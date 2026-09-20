@@ -42,6 +42,9 @@ export default function DirectoryListingPage() {
       }
 
       const data = await res.json();
+      console.log("[directory listing] full listing payload:", data.listing);
+      console.log("[directory listing] entitlements:", data.listing?.entitlements);
+      console.log("[directory listing] clickablePhone value:", data.listing?.entitlements?.clickablePhone, typeof data.listing?.entitlements?.clickablePhone);
       setListing(data.listing);
       setLoading(false);
     }
@@ -162,23 +165,30 @@ export default function DirectoryListingPage() {
             </a>
           )}
 
-          {listing.telephone && (
+{listing.telephone && listing.entitlements?.clickablePhone !== false && (
             <a
-              href={`tel:${listing.telephone}`}
-              onClick={() => track("telephone_click")}
-              className="flex items-center gap-3 px-5 py-4 text-[14px] text-[#0B1830] hover:text-[#2F7D1B]"
-            >
-              <span className="text-base">⌕</span>
-              <span>{listing.telephone}</span>
-              <span className="ml-auto">→</span>
-            </a>
-          )}
+            href={`tel:${listing.telephone}`}
+            onClick={() => track("telephone_click")}
+            className="flex items-center gap-3 px-5 py-4 text-[14px] text-[#0B1830] hover:text-[#2F7D1B]"
+          >
+            <span className="text-base">⌕</span>
+            <span>{listing.telephone}</span>
+            <span className="ml-auto">→</span>
+          </a>
+        )}
 
-          {!listing.website && !listing.telephone && (
-            <p className="px-5 py-6 text-center text-[13px] text-[#657084]">
-              No contact details available yet.
-            </p>
-          )}
+        {listing.telephone && listing.entitlements?.clickablePhone === false && (
+          <div className="flex items-center gap-3 px-5 py-4 text-[14px] text-[#0B1830]">
+            <span className="text-base">⌕</span>
+            <span>{listing.telephone}</span>
+          </div>
+        )}
+
+        {!listing.website && !listing.telephone && (
+          <p className="px-5 py-6 text-center text-[13px] text-[#657084]">
+            No contact details available yet.
+          </p>
+        )}
         </div>
       </div>
     </main>
